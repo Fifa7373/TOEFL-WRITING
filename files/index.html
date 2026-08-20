@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>TOEFL Writing 批改練習</title>
+<style>
+  :root {
+    --ink: #0f1720;
+    --panel: #17222c;
+    --panel-2: #1e2b37;
+    --line: rgba(216, 227, 232, 0.10);
+    --line-strong: rgba(216, 227, 232, 0.20);
+    --paper: #e8ecec;
+    --paper-dim: #9fb0b8;
+    --amber: #d9a441;
+    --amber-dim: rgba(217, 164, 65, 0.16);
+    --teal: #5ea8a0;
+    --teal-dim: rgba(94, 168, 160, 0.16);
+    --bad: #c96a5a;
+    --good: #6fae7c;
+    --radius: 10px;
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    --serif: Georgia, 'Noto Serif TC', 'PMingLiU', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--ink); color: var(--paper); font-family: var(--sans); -webkit-tap-highlight-color: transparent; }
+  body { min-height: 100vh; }
+  .bg-grid {
+    position: fixed; inset: 0;
+    background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 28px 28px; opacity: 0.35; pointer-events: none; z-index: 0;
+  }
+  .app { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; padding: 18px 16px 110px; }
+
+  header.top { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--line-strong); padding-bottom: 14px; margin-bottom: 18px; flex-wrap: wrap; gap: 6px; }
+  header.top h1 { font-family: var(--serif); font-size: 22px; font-weight: 700; margin: 0; color: var(--paper); }
+  header.top h1 em { color: var(--amber); font-style: normal; }
+  header.top .sub { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--paper-dim); text-transform: uppercase; }
+
+  nav.tabs { display: flex; gap: 4px; margin-bottom: 18px; overflow-x: auto; }
+  nav.tabs button {
+    background: var(--panel); border: 1px solid var(--line); color: var(--paper-dim);
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.03em; padding: 9px 14px;
+    border-radius: 8px; cursor: pointer; white-space: nowrap;
+  }
+  nav.tabs button.active { background: var(--amber-dim); color: var(--amber); border-color: var(--amber); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card { background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 12px; position: relative; }
+  .empty-note { font-family: var(--serif); font-style: italic; color: var(--paper-dim); text-align: center; padding: 40px 20px; }
+  .btn { font-family: var(--mono); font-size: 12px; letter-spacing: 0.03em; padding: 9px 16px; border-radius: 8px; cursor: pointer; border: 1px solid var(--line-strong); background: var(--panel-2); color: var(--paper); }
+  .btn-primary { background: var(--amber-dim); color: var(--amber); border-color: var(--amber); }
+  .btn-ghost { background: none; color: var(--paper-dim); }
+  .btn-del { position: absolute; top: 14px; right: 16px; background: none; border: none; color: var(--paper-dim); font-family: var(--mono); font-size: 11px; cursor: pointer; }
+  .btn-del:hover { color: var(--bad); }
+
+  label.f { display: block; font-family: var(--sans); font-size: 12px; color: var(--paper-dim); margin: 12px 0 4px; }
+  label.f:first-child { margin-top: 0; }
+  input.f, select.f, textarea.f {
+    width: 100%; padding: 9px 11px; border: 1.5px solid var(--paper); border-radius: 6px;
+    background: transparent; color: var(--paper); font-family: var(--sans); font-size: 14px;
+    box-sizing: border-box;
+  }
+  select.f option { background: var(--panel); color: var(--paper); }
+  input.f::placeholder, textarea.f::placeholder { color: var(--paper-dim); font-style: italic; opacity: 1; }
+  input.f:focus, select.f:focus, textarea.f:focus { border-color: var(--amber); outline: none; }
+  textarea.f { font-family: var(--serif); min-height: 60px; resize: none; line-height: 1.55; overflow-y: hidden; }
+  .form-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .dim-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .dim-pill { font-family: var(--mono); font-size: 11px; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--paper-dim); cursor: pointer; }
+  .dim-pill.active { background: var(--teal-dim); color: var(--teal); border-color: var(--teal); }
+  .filters { display: flex; gap: 8px; margin-bottom: 16px; }
+
+  .sb-tagrow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
+  .sb-dimtag { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--amber); font-weight: 600; }
+  .sb-topictag { font-family: var(--mono); font-size: 10.5px; color: var(--paper-dim); }
+  .sb-score { font-family: var(--mono); font-size: 11px; background: var(--panel-2); padding: 3px 8px; border-radius: 5px; color: var(--paper-dim); }
+  .sb-wrong { font-family: var(--serif); font-style: italic; color: var(--bad); text-decoration: line-through; text-decoration-color: rgba(201,106,90,0.5); margin-bottom: 8px; line-height: 1.6; font-size: 14.5px; white-space: pre-wrap; }
+  .sb-correct { font-family: var(--serif); color: var(--good); line-height: 1.6; font-size: 14.5px; margin-bottom: 10px; border-left: 2px solid var(--good); padding-left: 10px; white-space: pre-wrap; }
+  .sb-meta { font-size: 13px; color: var(--paper-dim); line-height: 1.6; margin-bottom: 4px; white-space: pre-wrap; }
+  .sb-meta b { color: var(--paper); }
+  .sb-concept { margin-top: 10px; background: var(--teal-dim); border-left: 3px solid var(--teal); padding: 8px 12px; font-size: 13px; color: var(--paper); border-radius: 0 6px 6px 0; white-space: pre-wrap; }
+  .sb-concept b { color: var(--teal); font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-bottom: 3px; }
+
+  .form-box { display: none; margin-bottom: 18px; }
+  .form-box.open { display: block; }
+  .form-actions { margin-top: 16px; display: flex; gap: 10px; }
+
+  .exam-switch { display: flex; gap: 6px; margin-bottom: 14px; }
+  .exam-switch button { flex: 1; padding: 10px 8px; }
+
+  .essay-card { background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 12px; }
+  .essay-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; cursor: pointer; }
+  .essay-topic { font-family: var(--serif); font-size: 15px; color: var(--paper); white-space: pre-wrap; }
+  .essay-type { font-family: var(--mono); font-size: 10px; color: var(--amber); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+  .essay-body { display: none; margin-top: 10px; }
+  .essay-body.open { display: block; }
+  .essay-block-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--paper-dim); margin-bottom: 4px; margin-top: 12px; }
+  .essay-block-label:first-child { margin-top: 0; }
+  .essay-text { font-family: var(--serif); font-size: 14px; line-height: 1.7; white-space: pre-wrap; color: var(--paper); background: var(--panel-2); padding: 10px 12px; border-radius: 8px; }
+  .essay-corrections { margin-top: 14px; border-top: 1px dashed var(--line-strong); padding-top: 12px; }
+
+  .mini-correction-form { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 10px; position: relative; }
+  .mini-correction-form .rm { position: absolute; top: 8px; right: 10px; background: none; border: none; color: var(--paper-dim); font-family: var(--mono); font-size: 11px; cursor: pointer; }
+
+  .et-card { background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 30px 24px; text-align: center; }
+  .et-zh { font-family: var(--serif); font-size: 18px; line-height: 1.8; margin-bottom: 22px; color: var(--paper); white-space: pre-wrap; }
+  .et-reveal { border-top: 1px dashed var(--line-strong); padding-top: 16px; margin-top: 6px; text-align: left; display: none; }
+  .et-reveal.show { display: block; }
+  .et-controls { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+  .et-progress { font-family: var(--mono); font-size: 11px; color: var(--paper-dim); text-align: center; margin-bottom: 12px; }
+
+  .ref-section { margin-bottom: 24px; }
+  .ref-section h3 { font-family: var(--serif); font-size: 15px; border-bottom: 1px solid var(--line-strong); padding-bottom: 6px; margin-bottom: 10px; color: var(--paper); font-weight: 600; display:flex; justify-content:space-between; align-items:center; }
+  .ref-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ref-tags span { background: var(--panel); border: 1px solid var(--line-strong); font-size: 12.5px; padding: 5px 10px; border-radius: 6px; color: var(--paper-dim); }
+  .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; font-size: 13.5px; }
+  .profile-grid div b { color: var(--paper-dim); font-family: var(--mono); font-size: 10px; text-transform: uppercase; display: block; }
+
+  .pattern-card { background: var(--panel); border: 1px solid var(--line-strong); border-left: 3px solid var(--amber); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; position: relative; }
+  .pattern-card .pc-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--paper-dim); margin-bottom: 2px; }
+  .pattern-card .pc-pattern { display: block; width: 100%; box-sizing: border-box; background: transparent; border: none; resize: none; overflow: hidden; font-family: var(--serif); font-size: 14.5px; color: var(--amber); outline: none; min-height: 1.3em; padding: 2px 0; }
+  .pattern-card .pc-example { display: block; width: 100%; box-sizing: border-box; background: transparent; border: none; resize: none; overflow: hidden; font-family: var(--serif); font-size: 13.5px; color: var(--paper-dim); outline: none; min-height: 1.3em; padding: 2px 0; margin-top: 6px; border-top: 1px dashed var(--line); padding-top: 6px; }
+  .pattern-card .pc-phrase { display: block; width: 100%; box-sizing: border-box; background: transparent; border: none; resize: none; overflow: hidden; font-family: var(--serif); font-size: 13.5px; color: var(--teal); outline: none; min-height: 1.3em; padding: 2px 0; }
+  .pattern-card .pc-del { position: absolute; top: 8px; right: 10px; background: none; border: none; color: var(--paper-dim); font-family: var(--mono); font-size: 10px; cursor: pointer; }
+  .pattern-card .pc-del:hover { color: var(--bad); }
+  .pc-add-btn { font-family: var(--mono); font-size: 11px; background: none; border: none; color: var(--amber); cursor: pointer; padding: 0; }
+
+  /* ---- Topics ---- */
+  .back-btn { font-family: var(--mono); font-size: 12px; background: none; border: none; color: var(--paper-dim); cursor: pointer; margin-bottom: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 0; }
+  .back-btn:hover { color: var(--amber); }
+  .breadcrumb { font-family: var(--mono); font-size: 11px; color: var(--paper-dim); margin-bottom: 10px; }
+  .point-badge { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border: 1.5px solid var(--amber); border-radius: 6px; color: var(--amber); font-family: var(--mono); font-weight: 700; font-size: 12px; flex-shrink: 0; }
+  .point-row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px; }
+  .point-row .point-content { flex: 1; min-width: 0; }
+  .point-content-text { display: block; width: 100%; box-sizing: border-box; font-family: var(--serif); font-size: 14px; color: var(--paper); outline: none; resize: none; overflow: hidden; min-height: 2.4em; background: transparent; border: 1px solid var(--line-strong); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; }
+  .point-content-text::placeholder { color: var(--paper-dim); font-style: italic; opacity: 1; }
+  .point-content-text:focus { border-color: var(--amber); }
+  /* 底線樣式：三個例子的右半邊用底線而非方框 */
+  .underline-field { display: block; width: 100%; box-sizing: border-box; font-family: var(--serif); font-size: 14px; color: var(--paper); outline: none; resize: none; overflow: hidden; min-height: 2em; background: transparent; border: none; border-bottom: 1px solid var(--line-strong); border-radius: 0; padding: 6px 2px; margin-bottom: 6px; }
+  .underline-field::placeholder { color: var(--paper-dim); font-style: italic; opacity: 1; }
+  .underline-field:focus { border-bottom-color: var(--amber); }
+  .field-select { display: block; width: 100%; font-family: var(--sans); font-size: 13px; color: var(--paper); background: transparent; border: 1px solid var(--line-strong); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; }
+  .field-select option { background: var(--panel); color: var(--paper); }
+  .field-select:focus { border-color: var(--amber); outline: none; }
+  .pair-row, .triple-row { display: flex; align-items: stretch; gap: 4px; flex-wrap: nowrap; margin-bottom: 6px; }
+
+  /* ---- 依手繪稿的版面 ---- */
+  .topic-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+  .topic-label { font-family: var(--serif); font-size: 18px; color: var(--paper); flex: 0 0 auto; }
+  .topic-row > .underline-field { flex: 1 1 auto; }
+  .hand-label { font-family: var(--serif); font-size: 14px; color: var(--paper); margin: 6px 0 3px; }
+  .ast-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .ast-row .hand-label { margin: 0; flex: 0 0 auto; }
+  .yellow-select { flex: 1 1 100px; min-width: 90px; background: transparent; color: var(--paper); border: 1px solid var(--line-strong); border-radius: 6px; padding: 6px 8px; font-family: var(--sans); font-size: 13px; }
+  .yellow-select option { background: var(--panel); color: var(--paper); }
+  .yellow-select:focus { outline: none; border-color: var(--amber); }
+  .mc-row { display: flex; align-items: flex-end; gap: 8px; margin: 12px 0; }
+  .mc-box { flex: 1 1 0; min-width: 0; }
+  .mc-caption { font-family: var(--serif); font-size: 12px; color: var(--paper-dim); margin-bottom: 2px; }
+  .mc-box > .point-content-text { margin-bottom: 0; }
+  .mc-arrow { flex: 0 0 auto; color: var(--paper-dim); font-size: 16px; padding-bottom: 8px; }
+  .pt-row { display: flex; align-items: flex-start; gap: 10px; }
+  .pt-left { flex: 0 0 22%; min-width: 0; }
+  .pt-left > .point-content-text { margin-bottom: 0; min-height: 3em; }
+  .pt-right { flex: 1 1 0; min-width: 0; display: flex; align-items: flex-end; padding-bottom: 4px; }
+  .pt-right > .underline-field { margin-bottom: 0; }
+  .fpr-group { flex: 1 1 0; min-width: 0; display: flex; align-items: flex-end; gap: 4px; }
+  .fpr-cell { flex: 1 1 0; min-width: 0; }
+  .fpr-caption { font-family: var(--serif); font-size: 11px; color: var(--paper-dim); margin-bottom: 2px; display: flex; align-items: center; gap: 3px; }
+  .fpr-cell > .point-content-text { margin-bottom: 0; min-height: 2.2em; font-size: 12.5px; padding: 5px 6px; }
+  .fpr-arrow { flex: 0 0 auto; color: var(--paper); font-size: 13px; padding-bottom: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
+  .dot.g { background: var(--teal); }
+  .dot.y { background: var(--paper-dim); }
+  .down-arrow { text-align: left; padding-left: 8%; color: var(--paper); font-size: 15px; margin: 2px 0; }
+  .point-box-left { flex: 0 0 34%; min-width: 0; }
+  .point-box-left > .point-content-text { margin-bottom: 0; height: 100%; }
+  .point-lines-right { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+  .pair-row > .point-content-text, .triple-row > .point-content-text { flex: 1 1 0; min-width: 0; margin-bottom: 0; padding: 6px 6px; font-size: 12.5px; }
+  .pair-row > .arrow-line, .triple-row > .arrow-line { flex: 0 0 auto; margin: 0; align-self: center; font-size: 12px; padding: 0 1px; }
+  .arrow-line { text-align: center; color: var(--teal); font-family: var(--mono); font-size: 14px; margin: 4px 0; }
+  .subtopic-card, .question-card { background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; cursor: pointer; }
+  .subtopic-card:hover, .question-card:hover { border-color: var(--amber); }
+  .subtopic-card .st-name { font-family: var(--serif); font-size: 15px; color: var(--paper); margin-bottom: 4px; }
+  .subtopic-card .st-count { font-family: var(--mono); font-size: 10.5px; color: var(--paper-dim); }
+  .question-card .q-prompt { font-family: var(--serif); font-size: 13.5px; color: var(--paper-dim); line-height: 1.6; margin-bottom: 10px; }
+  .usage-block { background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; }
+  .usage-block-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .usage-mirror { font-family: var(--serif); font-size: 13px; color: var(--paper-dim); background: var(--panel-2); border-radius: 6px; padding: 6px 10px; margin-bottom: 10px; white-space: pre-wrap; }
+  .ref-pattern { color: var(--paper-dim); font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; margin-top: 6px; }
+  .unlink { position: absolute; top: 0; right: 0; background: none; border: none; color: var(--paper-dim); font-family: var(--mono); font-size: 10px; cursor: pointer; }
+  .unlink:hover { color: var(--bad); }
+  .chooser-box { background: var(--panel-2); border: 1px dashed var(--line-strong); border-radius: 8px; padding: 12px; margin-top: 8px; }
+  .inline-add-form { background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; display: none; }
+  .inline-add-form.open { display: block; }
+  .pc-tagrow { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .pc-tag { font-family: var(--mono); font-size: 10px; padding: 3px 9px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--panel-2); color: var(--paper-dim); cursor: pointer; }
+  .pc-tag.on { background: var(--teal-dim); color: var(--teal); border-color: var(--teal); }
+  .filter-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .filter-pill { font-family: var(--mono); font-size: 11px; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--paper-dim); cursor: pointer; }
+  .filter-pill.on { background: var(--amber-dim); color: var(--amber); border-color: var(--amber); }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="app">
+
+<header class="top">
+  <h1>TOEFL <em>Writing</em> 批改練習</h1>
+  <div class="sub">Test Build · Kyle</div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="bank">句庫</button>
+  <button class="tab-btn" data-tab="mock">模考</button>
+  <button class="tab-btn" data-tab="error">錯誤測驗</button>
+  <button class="tab-btn" data-tab="ref">參考資料</button>
+  <button class="tab-btn" data-tab="topics">Topics</button>
+  <button class="tab-btn" data-tab="backup">備份</button>
+</nav>
+
+<div class="panel active" id="panel-bank">
+  <button class="btn btn-primary" id="toggleForm" style="margin-bottom:14px;">＋ 新增批改記錄</button>
+
+  <div class="form-box card" id="formBox">
+    <label class="f">主題 Topic</label>
+    <select class="f" id="f-topic">
+      <option>Technology & AI</option>
+      <option>Environment & City Planning</option>
+      <option>Education & Work</option>
+      <option>Health & Society</option>
+      <option>其他</option>
+    </select>
+    <div class="form-row2">
+      <div>
+        <label class="f">維度 Dimension</label>
+        <select class="f" id="f-dim">
+          <option>Relevance</option>
+          <option>Organization</option>
+          <option>Development</option>
+          <option>Language</option>
+        </select>
+      </div>
+      <div>
+        <label class="f">老師分數（選填）</label>
+        <input class="f" id="f-score" placeholder="例如 3.5/5">
+      </div>
+    </div>
+    <label class="f">中文原意（你當初想表達什麼，用於錯誤測驗）</label>
+    <textarea class="f" id="f-zh" placeholder="用中文寫出你當時想表達的意思"></textarea>
+    <label class="f">錯誤的英文句子</label>
+    <textarea class="f" id="f-wrong" placeholder="原本寫錯的句子"></textarea>
+    <label class="f">修改後的正確句子（可多句，一行一句）</label>
+    <textarea class="f" id="f-correct" placeholder="修正後的句子，可以列多種正確寫法"></textarea>
+    <label class="f">犯了什麼錯誤</label>
+    <textarea class="f" id="f-errtype" placeholder="錯誤描述"></textarea>
+    <label class="f">怎麼做修改</label>
+    <textarea class="f" id="f-fix" placeholder="修改的方法／思路"></textarea>
+    <label class="f">核心觀念</label>
+    <textarea class="f" id="f-concept" placeholder="這類錯誤背後要記住的原則"></textarea>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="saveEntry">儲存</button>
+      <button class="btn btn-ghost" id="cancelEntry">取消</button>
+    </div>
+  </div>
+
+  <div class="dim-pills" id="dimPills">
+    <div class="dim-pill active" data-dim="all">全部</div>
+    <div class="dim-pill" data-dim="Relevance">Relevance</div>
+    <div class="dim-pill" data-dim="Organization">Organization</div>
+    <div class="dim-pill" data-dim="Development">Development</div>
+    <div class="dim-pill" data-dim="Language">Language</div>
+  </div>
+  <div class="filters">
+    <select class="f" id="topicFilter">
+      <option value="all">所有主題</option>
+      <option>Technology & AI</option>
+      <option>Environment & City Planning</option>
+      <option>Education & Work</option>
+      <option>Health & Society</option>
+      <option>其他</option>
+    </select>
+  </div>
+
+  <div id="bankList"></div>
+</div>
+
+<div class="panel" id="panel-mock">
+  <div class="exam-switch" id="examSwitch">
+    <button class="btn active" data-exam="email">Write an Email</button>
+    <button class="btn" data-exam="discussion">Academic Discussion</button>
+    <button class="btn" data-exam="sentence">Build a Sentence</button>
+  </div>
+
+  <button class="btn btn-primary" id="toggleEssayForm" style="margin-bottom:14px;">＋ 新增模考記錄</button>
+
+  <div class="form-box card" id="essayFormBox">
+    <label class="f">主題／題目（把題目或討論版留言貼上）</label>
+    <textarea class="f" id="e-topic" placeholder="貼上這次模考的題目或 Academic Discussion 留言"></textarea>
+    <label class="f">大綱（連結到 Topics 題目，內容跟 Topics 分頁同步）</label>
+    <div id="topicLinkContainer-add"></div>
+    <label class="f">我的回答（完整貼上）</label>
+    <textarea class="f" id="e-response" style="min-height:140px;" placeholder="貼上這次寫的完整回答"></textarea>
+    <label class="f">訂正後版本（整篇修改後的完整內容）</label>
+    <textarea class="f" id="e-revised" style="min-height:140px;" placeholder="訂正完之後，把改好的完整文章貼在這裡"></textarea>
+    <label class="f">Language</label>
+    <textarea class="f" id="e-language" placeholder="蒐集這次的 Language usage"></textarea>
+
+    <div class="essay-corrections">
+      <label class="f" style="margin-top:0;">錯誤訂正（可新增多則，跟句庫欄位一樣）</label>
+      <div id="correctionList"></div>
+      <button class="btn btn-ghost" id="addCorrection" type="button">＋ 新增一則訂正</button>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" id="saveEssay">儲存這次模考</button>
+      <button class="btn btn-ghost" id="cancelEssay">取消</button>
+    </div>
+  </div>
+
+  <div id="essayList"></div>
+</div>
+
+<div class="panel" id="panel-error">
+  <div class="et-progress" id="etProgress"></div>
+  <div class="et-card" id="etCard"></div>
+</div>
+
+<div class="panel" id="panel-ref">
+  <div class="ref-section">
+    <h3>Profile（Story Bank 素材）</h3>
+    <div class="profile-grid">
+      <div><b>Hometown</b>Hsinchu</div>
+      <div><b>Major</b>Physics, NTHU</div>
+      <div><b>Goal</b>Become a Machine Learning Scientist</div>
+      <div><b>Interests</b>Football, Reading, Artistic creation</div>
+      <div><b>Food</b>Wonton Noodle Soup</div>
+      <div><b>Transportation</b>Bus</div>
+    </div>
+  </div>
+  <div class="ref-section">
+    <h3 style="display:block;">句型庫</h3>
+    <div class="filter-pills" id="patTabs"></div>
+    <button class="pc-add-btn" id="addPattern" style="margin-bottom:10px;">＋在目前分類新增</button>
+    <div id="patList"></div>
+  </div>
+  <div class="ref-section">
+    <h3>連接句型</h3>
+    <div class="ref-tags" id="refConnect"></div>
+  </div>
+</div>
+
+<div class="panel" id="panel-topics">
+  <div class="filter-pills" id="topicAreaTabs"></div>
+  <div id="topicsRoot"></div>
+</div>
+
+<div class="panel" id="panel-backup">
+  <div class="card">
+    <div class="essay-block-label" style="margin-top:0;">跨裝置同步（Google Sheets）</div>
+    <p style="font-size:13px; color:var(--paper-dim); line-height:1.6; margin:0 0 10px;">
+      貼上你的 Google Apps Script 網址，電腦和手機就會讀寫同一份資料。留空則只存在這台裝置。
+    </p>
+    <input class="f" id="syncUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+    <div class="form-actions">
+      <button class="btn btn-primary" id="saveSyncUrl">儲存並同步</button>
+      <span class="sub" id="syncStatus" style="align-self:center;"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="essay-block-label" style="margin-top:0;">匯出備份</div>
+    <p style="font-size:13px; color:var(--paper-dim); line-height:1.6; margin:0 0 12px;">
+      按下面按鈕，會把句庫、模考記錄、句型庫全部打包成一份文字，複製起來存到你自己的地方（Google Doc / Notes 都可以）。之後如果這個工具的資料不見了，把這份文字貼到下面「還原」欄位就能整份復原。
+    </p>
+    <div style="display:flex; gap:10px; margin-bottom:12px;">
+      <button class="btn btn-primary" id="exportBtn">產生備份文字</button>
+      <button class="btn" id="downloadBtn">下載成檔案</button>
+    </div>
+    <textarea class="f" id="exportArea" readonly style="min-height:160px; font-family:var(--mono); font-size:11px;" placeholder="按上面「產生備份文字」，內容會出現在這裡"></textarea>
+  </div>
+
+  <div class="card">
+    <div class="essay-block-label" style="margin-top:0; color:var(--bad);">還原備份</div>
+    <p style="font-size:13px; color:var(--paper-dim); line-height:1.6; margin:0 0 12px;">
+      把之前存起來的備份文字貼到下面，按「還原」會<b style="color:var(--bad);">覆蓋</b>目前工具裡的所有資料，請先確認貼對內容。
+    </p>
+    <textarea class="f" id="importArea" style="min-height:160px; font-family:var(--mono); font-size:11px;" placeholder="貼上之前匯出的備份文字"></textarea>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="importBtn" style="border-color:var(--bad); color:var(--bad); background:rgba(201,106,90,0.12);">還原（會覆蓋目前資料）</button>
+      <span class="sub" id="importStatus" style="align-self:center;"></span>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* ===== 儲存層：優先用 Google Sheets（跨裝置同步），沒設定就用本機 localStorage ===== */
+const SYNC_URL_KEY = '__gas_sync_url__';
+let cloudCache = null;          // 雲端整包資料的暫存
+let cloudDirty = false;
+
+function getSyncUrl(){
+  try { return localStorage.getItem(SYNC_URL_KEY) || ''; } catch(e){ return ''; }
+}
+function setSyncUrl(url){
+  try { localStorage.setItem(SYNC_URL_KEY, url); } catch(e){}
+}
+
+async function cloudLoad(){
+  const url = getSyncUrl();
+  if(!url) return null;
+  try{
+    const res = await fetch(url + '?action=get', { redirect:'follow' });
+    const txt = await res.text();
+    cloudCache = txt ? JSON.parse(txt) : {};
+  }catch(e){
+    console.error('雲端讀取失敗，改用本機資料', e);
+    cloudCache = null;
+  }
+  return cloudCache;
+}
+async function cloudSave(){
+  const url = getSyncUrl();
+  if(!url || !cloudCache) return;
+  try{
+    await fetch(url, {
+      method: 'POST',
+      body: JSON.stringify(cloudCache),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    });
+    cloudDirty = false;
+    const el = document.getElementById('syncStatus');
+    if(el) el.textContent = '已同步 · ' + new Date().toLocaleTimeString();
+  }catch(e){
+    console.error('雲端寫入失敗', e);
+    const el = document.getElementById('syncStatus');
+    if(el) el.textContent = '同步失敗，資料仍存在本機';
+  }
+}
+
+const LocalStore = {
+  async get(key){
+    if(cloudCache && Object.prototype.hasOwnProperty.call(cloudCache, key)){
+      return { key, value: cloudCache[key] };
+    }
+    try{
+      const v = localStorage.getItem(key);
+      return v === null ? null : { key, value: v };
+    }catch(e){ return null; }
+  },
+  async set(key, value){
+    try{ localStorage.setItem(key, value); }catch(e){}
+    if(getSyncUrl()){
+      if(!cloudCache) cloudCache = {};
+      cloudCache[key] = value;
+      cloudDirty = true;
+      clearTimeout(LocalStore._t);
+      LocalStore._t = setTimeout(cloudSave, 800);   // 800ms 內的連續修改合併成一次上傳
+    }
+    return { key, value };
+  },
+  _t: null
+};
+
+const STORAGE_KEY = 'writing-entries';
+const ESSAY_KEY = 'writing-essays';
+let entries = [];
+let essays = [];
+let dimFilter = 'all';
+
+const connectPhrases = ["For instance, …","Moreover, …","Specifically, …","Overall, …","To exemplify one's idea, …","A, B, C, to name just a few.","In terms of …","It is … that …","In essence, …","No … would be completed without …","Along with …","Take its toll on …","Prevalent among …"];
+
+const PATTERN_KEY = 'writing-patterns-v3';
+const TOPIC_TAGS = ["Technology & AI","Environment & City Planning","Education & Work","Health & Society"];
+let patterns = [];      // 四主題分類：{id, topic, pattern, example}
+let templates = [];     // 通用句子：{id, pattern, examples:[{id, text, topic}]}
+let currentPatTab = '通用句子';
+
+const seedPatterns = [
+  {topic:"Education & Work", p:"Social mobility", e:""},
+  {topic:"Education & Work", p:"Increase visibility", e:""},
+  {topic:"Education & Work", p:"Build up reputation", e:""},
+  {topic:"Education & Work", p:"Become knowledgeable person", e:""},
+  {topic:"Education & Work", p:"Gain professional skills", e:""},
+  {topic:"Education & Work", p:"Be an authoritative figure", e:""},
+  {topic:"Education & Work", p:"Through years of hard work/dedication, …", e:"I believe that education can truly help a person to have expertise"},
+  {topic:"Education & Work", p:"", e:"…, which has earned him considerable respect from his coworkers and managers"},
+  {topic:"Education & Work", p:"", e:"I believe that education can truly empower a person to gain others' trust in his expertise."},
+  {topic:"Education & Work", p:"Obatin social recognition", e:""},
+  {topic:"Education & Work", p:"Gain significant admiration from his colleagues and supervisors", e:""},
+  {topic:"Education & Work", p:"Understand how workplaces operate", e:""},
+  {topic:"Education & Work", p:"How academic knowledge is used in professional settings", e:""},
+  {topic:"Education & Work", p:"", e:"These experiences gave me a clearer picture of how responsibilities are divided within a professional team and made me more confident about working in a real workplace"},
+  {topic:"Education & Work", p:"Understand how professional teams collaborate", e:""},
+  {topic:"Education & Work", p:"", e:"Which showed me how responsibilities are divided within a professional team"},
+  {topic:"Education & Work", p:"Made me familiar with", e:"helped me understand"},
+  {topic:"Technology & AI", p:"I am eager to learn more about AI.", e:"'eager' is adjective, not verb"},
+  {topic:"Technology & AI", p:"", e:"During the internship, applying theories learned in school to real-world problems was compulsory for us. As a result, I became more familiar with the practical challenges of artificial intelligence."},
+  {topic:"Health & Society", p:"Eye strain / back pain / step away from screen", e:""},
+  {topic:"Health & Society", p:"Returning to their responsibilities", e:""},
+  {topic:"Health & Society", p:"Feel less physically and mentally exhausted", e:""},
+  {topic:"Health & Society", p:"Promote healthier habits", e:""},
+  {topic:"Health & Society", p:"Provide convenient places to exercise", e:""},
+  {topic:"Health & Society", p:"Take breaks from daily routine", e:""},
+  {topic:"Health & Society", p:"Working on computers", e:""},
+  {topic:"Health & Society", p:"Step away from computers/daily routine", e:""},
+  {topic:"Environment & City Planning", p:"Investing in public parks", e:""},
+  {topic:"Environment & City Planning", p:"", e:"Parks can support residents; physical and mental health"}
+];
+
+// 通用句子：一個句型模板 → 多則例句，每則例句各自標記屬於哪個主題
+const seedTemplates = [
+  {
+    p:"Prepare … for …",
+    examples:[
+      {text:"Prepare students for their future careers", topic:"Education & Work"},
+      {text:"Prepare workers for the automation of routine tasks", topic:"Technology & AI"},
+      {text:"Prepare communities for a public health crisis", topic:"Health & Society"},
+      {text:"Prepare cities for extreme weather events", topic:"Environment & City Planning"}
+    ]
+  },
+  {
+    p:"Ultimately improve the quality of life",
+    examples:[
+      {text:"Investing in public parks can ultimately improve the quality of life for residents", topic:"Environment & City Planning"},
+      {text:"Taking short breaks from daily routine can ultimately improve the quality of life for office workers", topic:"Health & Society"}
+    ]
+  },
+  {
+    p:"Resulting in … / thereby …ing",
+    examples:[
+      {text:"thereby improving residents' quality of life", topic:"Health & Society"}
+    ]
+  },
+  {
+    p:"Better prepare themselves for …",
+    examples:[
+      {text:"Better prepare themselves for future careers", topic:"Education & Work"}
+    ]
+  },
+  {
+    p:"Trigger wandering minds / Drift away and miss important details",
+    examples:[]
+  },
+  {
+    p:"Value one's opinions",
+    examples:[]
+  }
+];
+
+const examPrompts = {
+  discussion: {
+    "Technology & AI": [
+      "有人認為 AI 應該被大量導入教育現場，取代部分教師的角色；也有人認為這會削弱學生的獨立思考能力。你支持哪一種立場？",
+      "精準廣告透過蒐集使用者資料來投放個人化內容，你認為這對消費者是利大於弊，還是弊大於利？",
+      "自動化技術正在取代許多重複性工作，你認為政府和企業該如何協助被取代的勞工轉型？"
+    ],
+    "Environment & City Planning": [
+      "有些城市選擇優先發展經濟，即使代價是環境惡化；有些城市則堅持環保優先。你認為哪一種策略比較合理？",
+      "如果市政府有一筆額外預算，你認為應該花在擴建大眾運輸，還是增建公園綠地？",
+      "你認為政府是否應該立法限制一次性塑膠製品的使用？"
+    ],
+    "Education & Work": [
+      "遠距工作與進辦公室工作，你認為哪一種對員工的長期職涯發展比較有利？",
+      "線上課程與傳統實體課堂相比，你認為哪一種學習效果更好？",
+      "現行的評分制度（考試、報告）是否真的能反映學生的能力？"
+    ],
+    "Health & Society": [
+      "你認為政府是否應該對含糖飲料課徵額外稅金以改善公共健康？",
+      "社群媒體對青少年心理健康的影響，你認為利大於弊還是弊大於利？",
+      "你認為職場是否應該立法規定強制休假天數，以降低過勞問題？"
+    ]
+  }
+};
+
+async function loadAll(){
+  await cloudLoad();
+  try{
+    const res = await LocalStore.get(STORAGE_KEY);
+    entries = res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){ entries = []; }
+  try{
+    const res2 = await LocalStore.get(ESSAY_KEY);
+    essays = res2 && res2.value ? JSON.parse(res2.value) : [];
+  }catch(e){ essays = []; }
+  try{
+    const res3 = await LocalStore.get(PATTERN_KEY);
+    const saved = res3 && res3.value ? JSON.parse(res3.value) : null;
+    patterns = saved && saved.patterns ? saved.patterns : null;
+    templates = saved && saved.templates ? saved.templates : null;
+  }catch(e){ patterns = null; templates = null; }
+  if(!patterns){ patterns = seedPatterns.map((s,i)=>({id:'p'+i, topic:s.topic, pattern:s.p, example:s.e})); }
+  if(!templates){ templates = seedTemplates.map((t,i)=>({id:'t'+i, pattern:t.p, phrases:'', examples:t.examples.map((ex,j)=>({id:'t'+i+'x'+j, text:ex.text, topic:ex.topic}))})); }
+  templates.forEach(t=>{ if(t.phrases === undefined) t.phrases = ''; });
+  await persistPatterns();
+  try{
+    const res4 = await LocalStore.get(TOPICS_KEY);
+    const savedTopics = res4 && res4.value ? JSON.parse(res4.value) : null;
+    topicsData.subtopics = savedTopics && savedTopics.subtopics ? savedTopics.subtopics : [];
+    topicsData.questions = savedTopics && savedTopics.questions ? savedTopics.questions : [];
+  }catch(e){ topicsData.subtopics = []; topicsData.questions = []; }
+  let topicsMigrated = false;
+  topicsData.questions.forEach(q=>{
+    ['A','B','C'].forEach(k=>{
+      const p = q.points && q.points[k];
+      if(!p) return;
+      if(!p.fact && !p.process && !p.result){
+        // 舊版只有 label 或 fpr 單一欄位，搬進 fact 欄位，process/result 留空讓使用者自己拆
+        const old = p.fpr;
+        if(old){ p.fact = old; topicsMigrated = true; }
+      }
+      if(p.fpr !== undefined) delete p.fpr;
+      if(p.label === undefined) p.label = '';
+      if(p.fact === undefined) p.fact = '';
+      if(p.process === undefined) p.process = '';
+      if(p.result === undefined) p.result = '';
+    });
+    ['mcTop','mcBottom'].forEach(slot=>{
+      const m = q[slot];
+      if(!m) return;
+      if(!m.concept && !m.target && m.text){
+        m.concept = m.text; topicsMigrated = true;
+      }
+      if(m.text !== undefined) delete m.text;
+      if(m.concept === undefined) m.concept = '';
+      if(m.target === undefined) m.target = '';
+    });
+  });
+  if(topicsMigrated) await persistTopics();
+  renderBank();
+  renderEssays();
+  renderPatTabs();
+  renderPatList();
+}
+async function persistPatterns(){
+  try{ await LocalStore.set(PATTERN_KEY, JSON.stringify({patterns, templates})); }catch(e){ console.error(e); }
+}
+function renderPatTabs(){
+  const wrap = document.getElementById('patTabs');
+  const allTabs = ['通用句子', ...TOPIC_TAGS];
+  wrap.innerHTML = allTabs.map(t=>`<div class="filter-pill ${currentPatTab===t?'on':''}" data-tab="${t}">${t}</div>`).join('');
+  wrap.querySelectorAll('.filter-pill').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      currentPatTab = el.dataset.tab;
+      renderPatTabs();
+      renderPatList();
+    });
+  });
+}
+function renderPatList(){
+  const wrap = document.getElementById('patList');
+  if(currentPatTab === '通用句子'){
+    renderTemplateList(wrap);
+  } else {
+    renderTopicPatternList(wrap);
+  }
+}
+
+/* ---- 四主題：單一分類的句型/例句卡片 + 自動彙整通用句子裡屬於這個主題的例句 ---- */
+function renderTopicPatternList(wrap){
+  const items = patterns.filter(p=>p.topic===currentPatTab);
+  const fromTemplates = [];
+  templates.forEach(t=>{
+    (t.examples||[]).forEach(ex=>{
+      if(ex.topic===currentPatTab && ex.text){
+        fromTemplates.push({ templatePattern: t.pattern, text: ex.text });
+      }
+    });
+  });
+
+  const ownHtml = items.map(p=>`
+    <div class="pattern-card" data-id="${p.id}">
+      <button class="pc-del" data-id="${p.id}">刪除</button>
+      <div class="pc-label">句型</div>
+      <textarea class="pc-pattern" data-field="pattern" data-id="${p.id}">${escapeHtml(p.pattern)}</textarea>
+      <div class="pc-label">例句</div>
+      <textarea class="pc-example" data-field="example" data-id="${p.id}">${escapeHtml(p.example)}</textarea>
+    </div>
+  `).join('');
+
+  const fromTemplatesHtml = fromTemplates.length ? `
+    <div class="ref-section" style="margin-top:22px; margin-bottom:8px;">
+      <h3 style="display:block; font-size:13px; color:var(--paper-dim);">來自「通用句子」的 ${currentPatTab} 例句（唯讀，要編輯請到通用句子分頁）</h3>
+    </div>
+    ${fromTemplates.map(f=>`
+      <div class="pattern-card" style="opacity:0.85;">
+        <div class="pc-label">句型模板</div>
+        <div class="pc-pattern" style="cursor:default;">${escapeHtml(f.templatePattern)}</div>
+        <div class="pc-label">例句</div>
+        <div class="pc-example" style="cursor:default;">${escapeHtml(f.text)}</div>
+      </div>
+    `).join('')}
+  ` : '';
+
+  wrap.innerHTML = (ownHtml || fromTemplatesHtml)
+    ? (ownHtml || '<div class="empty-note">這個分類目前沒有專屬句型，下面是從「通用句子」自動彙整的例句。</div>') + fromTemplatesHtml
+    : '<div class="empty-note">這個分類還沒有句型，點上面「＋在目前分類新增」開始加。</div>';
+
+  wrap.querySelectorAll('.pattern-card[data-id] .pc-pattern, .pattern-card[data-id] .pc-example').forEach(el=>{
+    el.addEventListener('blur', async ()=>{
+      const item = patterns.find(p=>p.id===el.dataset.id);
+      if(!item) return;
+      item[el.dataset.field] = el.value.trim();
+      await persistPatterns();
+    });
+    autoResize(el);
+  });
+  wrap.querySelectorAll('.pc-del').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(!confirm('確定要刪除這則句型嗎？無法復原。')) return;
+      patterns = patterns.filter(p=>p.id!==btn.dataset.id);
+      await persistPatterns();
+      renderPatList();
+    });
+  });
+}
+
+/* ---- 通用句子：一個模板 → 多則例句，每則例句各自標記主題 ---- */
+function renderTemplateList(wrap){
+  if(templates.length===0){
+    wrap.innerHTML = '<div class="empty-note">還沒有通用句型模板，點上面「＋在目前分類新增」開始加。</div>';
+    return;
+  }
+  wrap.innerHTML = templates.map(t=>`
+    <div class="pattern-card" data-id="${t.id}">
+      <button class="pc-del" data-id="${t.id}" data-kind="template">刪除模板</button>
+      <div class="pc-label">句型模板</div>
+      <textarea class="pc-pattern" data-field="pattern" data-id="${t.id}">${escapeHtml(t.pattern)}</textarea>
+      <div class="pc-label" style="margin-top:10px;">Phrase（可用的小片語，不分主題）</div>
+      <textarea class="pc-phrase" data-field="phrases" data-id="${t.id}">${escapeHtml(t.phrases||'')}</textarea>
+      <div class="pc-label" style="margin-top:10px;">例句（依主題標記）</div>
+      ${[...t.examples].sort((a,b)=>TOPIC_TAGS.indexOf(a.topic)-TOPIC_TAGS.indexOf(b.topic)).map(ex=>`
+        <div style="border-top:1px dashed var(--line); padding-top:6px; margin-top:6px; position:relative;">
+          <textarea class="pc-example" data-field="text" data-tid="${t.id}" data-exid="${ex.id}">${escapeHtml(ex.text)}</textarea>
+          <div class="pc-tagrow">
+            ${TOPIC_TAGS.map(tag=>`<div class="pc-tag ${ex.topic===tag?'on':''}" data-tid="${t.id}" data-exid="${ex.id}" data-tag="${tag}">${tag}</div>`).join('')}
+            <button class="pc-del" style="position:static; margin-left:auto;" data-tid="${t.id}" data-exid="${ex.id}" data-kind="example">刪除例句</button>
+          </div>
+        </div>
+      `).join('')}
+      <button class="pc-add-btn" data-tid="${t.id}" style="margin-top:10px;">＋新增例句</button>
+    </div>
+  `).join('');
+
+  wrap.querySelectorAll('.pc-pattern').forEach(el=>{
+    el.addEventListener('blur', async ()=>{
+      const t = templates.find(t=>t.id===el.dataset.id);
+      if(!t) return;
+      t.pattern = el.value.trim();
+      await persistPatterns();
+    });
+    autoResize(el);
+  });
+  wrap.querySelectorAll('.pc-phrase').forEach(el=>{
+    el.addEventListener('blur', async ()=>{
+      const t = templates.find(t=>t.id===el.dataset.id);
+      if(!t) return;
+      t.phrases = el.value.trim();
+      await persistPatterns();
+    });
+    autoResize(el);
+  });
+  wrap.querySelectorAll('.pc-example').forEach(el=>{
+    el.addEventListener('blur', async ()=>{
+      const t = templates.find(t=>t.id===el.dataset.tid);
+      if(!t) return;
+      const ex = t.examples.find(e=>e.id===el.dataset.exid);
+      if(!ex) return;
+      ex.text = el.value.trim();
+      await persistPatterns();
+    });
+    autoResize(el);
+  });
+  wrap.querySelectorAll('.pc-tag').forEach(el=>{
+    el.addEventListener('click', async ()=>{
+      const t = templates.find(t=>t.id===el.dataset.tid);
+      if(!t) return;
+      const ex = t.examples.find(e=>e.id===el.dataset.exid);
+      if(!ex) return;
+      ex.topic = el.dataset.tag;
+      await persistPatterns();
+      renderPatList();
+    });
+  });
+  wrap.querySelectorAll('.pc-del[data-kind="template"]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(!confirm('確定要刪除整個句型模板嗎？底下所有例句會一併刪除，無法復原。')) return;
+      templates = templates.filter(t=>t.id!==btn.dataset.id);
+      await persistPatterns();
+      renderPatList();
+    });
+  });
+  wrap.querySelectorAll('.pc-del[data-kind="example"]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(!confirm('確定要刪除這則例句嗎？無法復原。')) return;
+      const t = templates.find(t=>t.id===btn.dataset.tid);
+      if(!t) return;
+      t.examples = t.examples.filter(e=>e.id!==btn.dataset.exid);
+      await persistPatterns();
+      renderPatList();
+    });
+  });
+  wrap.querySelectorAll('.pc-add-btn[data-tid]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const t = templates.find(t=>t.id===btn.dataset.tid);
+      if(!t) return;
+      t.examples.push({id:'ex'+Date.now()+Math.random().toString(36).slice(2,6), text:'', topic:TOPIC_TAGS[0]});
+      await persistPatterns();
+      renderPatList();
+    });
+  });
+}
+
+document.getElementById('addPattern').addEventListener('click', async ()=>{
+  if(currentPatTab === '通用句子'){
+    templates.unshift({id:'t'+Date.now()+Math.random().toString(36).slice(2,6), pattern:'', phrases:'', examples:[]});
+  } else {
+    patterns.unshift({id:'p'+Date.now()+Math.random().toString(36).slice(2,6), topic:currentPatTab, pattern:'', example:''});
+  }
+  await persistPatterns();
+  renderPatList();
+});
+
+/* ===================== Topics ===================== */
+const TOPICS_KEY = 'writing-topics-v1';
+let topicsData = { subtopics: [], questions: [] };
+let topicsState = { area: TOPIC_TAGS[0], level: 'subtopics', subtopicId: null, questionId: null };
+
+async function persistTopics(){
+  try{ await LocalStore.set(TOPICS_KEY, JSON.stringify(topicsData)); }catch(e){ console.error(e); }
+}
+
+/* ---- 共用：綁定 data-qfield/data-qid 的 contenteditable 欄位，Topics 跟模考共用同一份資料 ---- */
+function bindQuestionFieldEditors(root){
+  root.querySelectorAll('[data-qfield]').forEach(el=>{
+    el.addEventListener('blur', async ()=>{
+      const q = topicsData.questions.find(x=>x.id===el.dataset.qid);
+      if(!q) return;
+      const path = el.dataset.qfield.split('.');
+      const val = el.value.trim();
+      if(path.length===1){ q[path[0]] = val; }
+      else if(path[0]==='points'){ q.points[path[1]][path[2]] = val; }
+      else { q[path[0]][path[1]] = val; }
+      await persistTopics();
+    });
+    autoResize(el);
+  });
+}
+
+/* ---- 共用：欄位方塊產生器（改用標準 textarea，不用 contenteditable） ---- */
+function fieldBox(qid, qfield, value, placeholder, extraStyle){
+  return `<textarea class="point-content-text" data-qfield="${qfield}" data-qid="${qid}" placeholder="${escapeHtml(placeholder||'')}" style="${extraStyle||''}">${escapeHtml(value||'')}</textarea>`;
+}
+function areaSubtopicBoxHtml(q, layout){
+  const areaSelect = `<select class="yellow-select qc-area-select" data-qid="${q.id}">${TOPIC_TAGS.map(t=>`<option value="${t}">${t}</option>`).join('')}</select>`;
+  const subtopicSelect = `<select class="yellow-select qc-subtopic-select" data-qid="${q.id}"></select>`;
+  if(layout === 'pair'){
+    return `
+      <div class="ast-row">
+        <span class="hand-label">主題</span>${areaSelect}
+        <span class="hand-label">子主題</span>${subtopicSelect}
+      </div>
+    `;
+  }
+  return `
+    <div class="hand-label">主題</div>${areaSelect}
+    <div class="hand-label">子主題</div>${subtopicSelect}
+  `;
+}
+function bindAreaSubtopicSelectors(root){
+  root.querySelectorAll('.qc-area-select').forEach(areaSel=>{
+    const qid = areaSel.dataset.qid;
+    const q = topicsData.questions.find(x=>x.id===qid);
+    if(!q) return;
+    const curSt = topicsData.subtopics.find(s=>s.id===q.subtopicId);
+    areaSel.value = curSt ? curSt.area : TOPIC_TAGS[0];
+    const subSel = root.querySelector(`.qc-subtopic-select[data-qid="${qid}"]`);
+    function refreshSub(){
+      const subs = topicsData.subtopics.filter(s=>s.area===areaSel.value);
+      subSel.innerHTML = subs.length
+        ? subs.map(s=>`<option value="${s.id}" ${curSt && curSt.id===s.id ? 'selected':''}>${escapeHtml(s.name)}</option>`).join('')
+        : `<option value="">（這個主題還沒有子主題）</option>`;
+    }
+    refreshSub();
+    areaSel.addEventListener('change', async ()=>{
+      refreshSub();
+      if(subSel.value) await applySubtopicChange(qid, subSel.value);
+    });
+    subSel.addEventListener('change', async ()=>{
+      if(subSel.value) await applySubtopicChange(qid, subSel.value);
+    });
+  });
+}
+async function applySubtopicChange(qid, subtopicId){
+  const q = topicsData.questions.find(x=>x.id===qid);
+  if(!q) return;
+  q.subtopicId = subtopicId;
+  await persistTopics();
+  renderTopicsRoot();
+  renderEssays();
+}
+function titleBoxHtml(q){
+  return `
+    <div class="topic-row">
+      <span class="topic-label">Topic：</span>
+      ${underlineField(q.id, 'title', q.title, '')}
+    </div>
+  `;
+}
+function promptBoxHtml(q){
+  return `<div class="hand-label">完整題目</div>${fieldBox(q.id, 'prompt', q.prompt, '')}`;
+}
+function mcBoxesHtml(q, slot, labelSuffix){
+  return `
+    <div class="mc-row">
+      <div class="mc-box">
+        <div class="mc-caption">Main Concept</div>
+        ${fieldBox(q.id, slot+'.concept', q[slot].concept, '')}
+      </div>
+      <div class="mc-arrow">⟶</div>
+      <div class="mc-box">
+        <div class="mc-caption">Target Topic</div>
+        ${fieldBox(q.id, slot+'.target', q[slot].target, '')}
+      </div>
+    </div>
+  `;
+}
+function underlineField(qid, qfield, value, placeholder){
+  return `<textarea class="underline-field" data-qfield="${qfield}" data-qid="${qid}" placeholder="${escapeHtml(placeholder||'')}">${escapeHtml(value||'')}</textarea>`;
+}
+/* 外層：左邊白框 + 右邊一條底線 */
+function pointOuterHtml(q, k){
+  return `
+    <div class="pt-row">
+      <div class="pt-left">${fieldBox(q.id, `points.${k}.label`, q.points[k].label, '')}</div>
+      <div class="pt-right">${underlineField(q.id, `points.${k}.fact`, q.points[k].fact, '')}</div>
+    </div>
+  `;
+}
+/* 內層：左邊白框 + Fact → Process → Result 三個框（上面有彩色圓點標籤） */
+function pointBoxesHtml(q, k){
+  const cell = (field, dot, caption) => `
+    <div class="fpr-cell">
+      <div class="fpr-caption"><span class="dot ${dot}"></span>${caption}</div>
+      ${fieldBox(q.id, `points.${k}.${field}`, q.points[k][field], '')}
+    </div>
+  `;
+  return `
+    <div class="pt-row">
+      <div class="pt-left">${fieldBox(q.id, `points.${k}.label`, q.points[k].label, '')}</div>
+      <div class="fpr-group">
+        ${cell('fact','g','Fact')}
+        <div class="fpr-arrow">⟶</div>
+        ${cell('process','y','Process')}
+        <div class="fpr-arrow">⟶</div>
+        ${cell('result','y','Result')}
+      </div>
+    </div>
+  `;
+}
+function pointMirrorText(q, k){
+  return [q.points[k].fact, q.points[k].process, q.points[k].result].filter(Boolean).join(' → ');
+}
+function mcMirrorText(q, slot){
+  return [q[slot].concept, q[slot].target].filter(Boolean).join(' → ');
+}
+
+/* ---- 共用：可編輯的大綱鏡射（給模考顯示用；Title/MC-top/A-B-C 可直接編輯，跟 Topics 是同一份資料；完整題目與 Sentence Pattern Usage 仍只在 Topics 詳細頁編輯） ---- */
+function renderOutlineMirrorHtml(topicQuestionId, legacyOutline){
+  const q = topicQuestionId ? topicsData.questions.find(x=>x.id===topicQuestionId) : null;
+  if(!q){
+    if(legacyOutline){
+      return `<div class="essay-block-label">大綱／泡泡圖（舊版自由文字，尚未連結 Topics 題目）</div><div class="essay-text">${escapeHtml(legacyOutline)}</div>`;
+    }
+    return `<div class="essay-block-label">大綱</div><div class="essay-text" style="color:var(--paper-dim); font-style:italic;">（尚未連結 Topics 題目）</div>`;
+  }
+  const pointKeys = ['A','B','C'];
+  return `
+    <div class="essay-block-label">大綱</div>
+    <div class="card" style="margin-bottom:12px;">
+      ${titleBoxHtml(q)}
+      ${areaSubtopicBoxHtml(q)}
+      ${promptBoxHtml(q)}
+      ${mcBoxesHtml(q, 'mcTop', '（開頭）')}
+      ${pointKeys.map((k,i)=>`${i?'<div class="down-arrow">↓</div>':''}${pointBoxesHtml(q, k)}`).join('')}
+    </div>
+  `;
+}
+
+/* ---- 共用：Topics 題目直選器（三個下拉，直接選，不用新增流程） ---- */
+function renderLinkChooser(container, currentId, onChange, uid){
+  const curQ = currentId ? topicsData.questions.find(x=>x.id===currentId) : null;
+  const curSt = curQ ? topicsData.subtopics.find(s=>s.id===curQ.subtopicId) : null;
+  const curArea = curSt ? curSt.area : TOPIC_TAGS[0];
+
+  container.innerHTML = `
+    <div class="ast-row">
+      <span class="hand-label">主題</span>
+      <select class="yellow-select" id="lc-area-${uid}">
+        ${TOPIC_TAGS.map(t=>`<option value="${t}" ${t===curArea?'selected':''}>${t}</option>`).join('')}
+      </select>
+      <span class="hand-label">子主題</span>
+      <select class="yellow-select" id="lc-subtopic-${uid}"></select>
+      <span class="hand-label">題目</span>
+      <select class="yellow-select" id="lc-question-${uid}"></select>
+    </div>
+  `;
+
+  const areaSel = document.getElementById('lc-area-'+uid);
+  const stSel = document.getElementById('lc-subtopic-'+uid);
+  const qSel = document.getElementById('lc-question-'+uid);
+
+  function fillSubtopics(selId){
+    const subs = topicsData.subtopics.filter(s=>s.area===areaSel.value);
+    stSel.innerHTML = subs.length
+      ? subs.map(s=>`<option value="${s.id}" ${s.id===selId?'selected':''}>${escapeHtml(s.name)}</option>`).join('')
+      : `<option value="">（這個主題還沒有子主題）</option>`;
+  }
+  function fillQuestions(selId){
+    const qs = topicsData.questions.filter(q=>q.subtopicId===stSel.value);
+    qSel.innerHTML = qs.length
+      ? qs.map(q=>`<option value="${q.id}" ${q.id===selId?'selected':''}>${escapeHtml(q.title||'（未命名）')}</option>`).join('')
+      : `<option value="">（這個子主題還沒有題目）</option>`;
+  }
+
+  fillSubtopics(curSt ? curSt.id : null);
+  fillQuestions(curQ ? curQ.id : null);
+
+  areaSel.addEventListener('change', async ()=>{
+    fillSubtopics(); fillQuestions();
+    await onChange(qSel.value || null);
+    renderEssays();
+  });
+  stSel.addEventListener('change', async ()=>{
+    fillQuestions();
+    await onChange(qSel.value || null);
+    renderEssays();
+  });
+  qSel.addEventListener('change', async ()=>{
+    await onChange(qSel.value || null);
+    renderEssays();
+  });
+}
+
+function renderTopicsPanel(){
+  renderTopicAreaTabs();
+  renderTopicsRoot();
+}
+
+function renderTopicAreaTabs(){
+  const wrap = document.getElementById('topicAreaTabs');
+  wrap.innerHTML = TOPIC_TAGS.map(t=>`<div class="filter-pill ${topicsState.area===t?'on':''}" data-area="${t}">${t}</div>`).join('');
+  wrap.querySelectorAll('.filter-pill').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      topicsState = { area: el.dataset.area, level: 'subtopics', subtopicId: null, questionId: null };
+      renderTopicAreaTabs();
+      renderTopicsRoot();
+    });
+  });
+}
+
+function renderTopicsRoot(){
+  const root = document.getElementById('topicsRoot');
+  if(topicsState.level === 'questions') renderQuestionsView(root);
+  else if(topicsState.level === 'detail') renderQuestionDetail(root);
+  else renderSubtopicsView(root);
+}
+
+/* ---- Level 1：子主題列表 ---- */
+function renderSubtopicsView(root){
+  const list = topicsData.subtopics.filter(s=>s.area===topicsState.area);
+  root.innerHTML = `
+    <div class="ast-row" style="margin-bottom:14px;">
+      <input class="yellow-select" id="newSubtopicName" placeholder="新子主題名稱">
+      <button class="btn btn-primary" id="saveSubtopic" style="flex:0 0 auto;">建立</button>
+    </div>
+    <div id="subtopicList"></div>
+  `;
+  const subtopicList = document.getElementById('subtopicList');
+  subtopicList.innerHTML = list.map(s=>{
+    const qCount = topicsData.questions.filter(q=>q.subtopicId===s.id).length;
+    return `
+      <div class="subtopic-card" data-id="${s.id}">
+        <div class="st-name">${escapeHtml(s.name)}</div>
+        <div class="st-count">${qCount} 個題目</div>
+      </div>
+    `;
+  }).join('') || '<div class="empty-note">這個主題底下還沒有子主題，用上面的欄位建立。</div>';
+
+  document.getElementById('saveSubtopic').addEventListener('click', async ()=>{
+    const name = document.getElementById('newSubtopicName').value.trim();
+    if(!name){ alert('請輸入子主題名稱'); return; }
+    topicsData.subtopics.unshift({id:'st'+Date.now()+Math.random().toString(36).slice(2,6), area: topicsState.area, name});
+    await persistTopics();
+    renderTopicsRoot();
+  });
+  subtopicList.querySelectorAll('.subtopic-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      topicsState.level='questions';
+      topicsState.subtopicId = card.dataset.id;
+      renderTopicsRoot();
+    });
+  });
+}
+
+/* ---- Level 2：題目列表 ---- */
+function renderQuestionsView(root){
+  const subtopic = topicsData.subtopics.find(s=>s.id===topicsState.subtopicId);
+  const list = topicsData.questions.filter(q=>q.subtopicId===topicsState.subtopicId);
+  const pointKeys = ['A','B','C'];
+  root.innerHTML = `
+    <button class="back-btn" id="backToSubtopics">← 返回子主題</button>
+    <div class="breadcrumb">${escapeHtml(topicsState.area)} / ${escapeHtml(subtopic ? subtopic.name : '')}</div>
+    <div class="ast-row" style="margin-bottom:14px;">
+      <input class="yellow-select" id="newQTitle" placeholder="新題目 Title">
+      <button class="btn btn-primary" id="saveQuestion" style="flex:0 0 auto;">建立</button>
+    </div>
+    <div id="questionList"></div>
+  `;
+  const qList = document.getElementById('questionList');
+  qList.innerHTML = list.map(q=>`
+    <div class="question-card" style="cursor:default;" data-id="${q.id}">
+      ${titleBoxHtml(q)}
+      ${areaSubtopicBoxHtml(q, 'pair')}
+      ${mcBoxesHtml(q, 'mcTop', '')}
+      ${pointKeys.map((k,i)=>`${i?'<div class="down-arrow">↓</div>':''}${pointOuterHtml(q, k)}`).join('')}
+      <button class="btn btn-primary enter-detail" data-id="${q.id}" style="margin-top:8px;">編輯</button>
+    </div>
+  `).join('') || '<div class="empty-note">這個子主題底下還沒有題目，用上面的欄位建立。</div>';
+
+  document.getElementById('backToSubtopics').addEventListener('click', ()=>{
+    topicsState.level='subtopics'; topicsState.subtopicId=null;
+    renderTopicsRoot();
+  });
+  const clearAddForm = ()=>{ document.getElementById('newQTitle').value=''; };
+  document.getElementById('saveQuestion').addEventListener('click', async ()=>{
+    const title = document.getElementById('newQTitle').value.trim();
+    if(!title){ alert('請至少填 Title'); return; }
+    const mkPoint = ()=>({ label:'', fact:'', process:'', result:'', refs: [] });
+    const q = {
+      id:'q'+Date.now()+Math.random().toString(36).slice(2,6),
+      subtopicId: topicsState.subtopicId,
+      title,
+      prompt: '',
+      mcTop: { concept:'', target:'', refs:[] },
+      mcBottom: { concept:'', target:'', refs:[] },
+      points: { A: mkPoint(), B: mkPoint(), C: mkPoint() }
+    };
+    topicsData.questions.unshift(q);
+    await persistTopics();
+    clearAddForm();
+    renderTopicsRoot();
+  });
+
+  bindQuestionFieldEditors(qList);
+  bindAreaSubtopicSelectors(qList);
+  qList.querySelectorAll('.enter-detail').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      topicsState.level='detail';
+      topicsState.questionId = btn.dataset.id;
+      renderTopicsRoot();
+    });
+  });
+}
+
+/* ---- Level 3：題目詳細頁 ---- */
+function renderQuestionDetail(root){
+  const q = topicsData.questions.find(x=>x.id===topicsState.questionId);
+  if(!q){ topicsState.level='questions'; renderTopicsRoot(); return; }
+  const pointKeys = ['A','B','C'];
+
+  root.innerHTML = `
+    <button class="back-btn" id="backToQuestions">← 返回題目列表</button>
+
+    <div class="card" id="qDetailFields">
+      ${titleBoxHtml(q)}
+      ${areaSubtopicBoxHtml(q)}
+      ${promptBoxHtml(q)}
+      ${mcBoxesHtml(q, 'mcTop', '（開頭）')}
+      ${pointKeys.map((k,i)=>`${i?'<div class="down-arrow">↓</div>':''}${pointBoxesHtml(q, k)}`).join('')}
+      <div class="arrow-line">↓</div>
+      ${mcBoxesHtml(q, 'mcBottom', '（結尾）')}
+    </div>
+
+    <div class="essay-block-label" style="font-size:13px; margin:18px 0 10px;">Sentence Pattern</div>
+    <div id="usageBlocks"></div>
+  `;
+
+  document.getElementById('backToQuestions').addEventListener('click', ()=>{
+    topicsState.level='questions'; topicsState.questionId=null;
+    renderTopicsRoot();
+  });
+
+  bindQuestionFieldEditors(document.getElementById('qDetailFields'));
+  bindAreaSubtopicSelectors(document.getElementById('qDetailFields'));
+  document.getElementById('qDetailFields').querySelectorAll('[data-qfield]').forEach(el=>{
+    el.addEventListener('blur', renderUsageBlocks);
+  });
+
+  renderUsageBlocks();
+
+  function renderUsageBlocks(){
+    const usageWrap = document.getElementById('usageBlocks');
+    const slots = [
+      {key:'mcTop', label:'Main Concept（開頭）', mirror:mcMirrorText(q,'mcTop'), refs:q.mcTop.refs},
+      {key:'A', label:'A', mirror:pointMirrorText(q,'A'), refs:q.points.A.refs},
+      {key:'B', label:'B', mirror:pointMirrorText(q,'B'), refs:q.points.B.refs},
+      {key:'C', label:'C', mirror:pointMirrorText(q,'C'), refs:q.points.C.refs},
+      {key:'mcBottom', label:'Main Concept（結尾）', mirror:mcMirrorText(q,'mcBottom'), refs:q.mcBottom.refs}
+    ];
+    usageWrap.innerHTML = slots.map(s=>`
+      <div class="usage-block" data-key="${s.key}">
+        <div class="usage-block-head">
+          ${s.key.length<=1 ? `<div class="point-badge">${s.label}</div>` : `<div class="essay-block-label" style="margin:0;">${s.label}</div>`}
+        </div>
+        ${s.mirror ? `<div class="usage-mirror">${escapeHtml(s.mirror)}</div>` : ''}
+        <div class="refs-list" id="refs-${s.key}"></div>
+        <button class="pc-add-btn add-usage-btn" data-key="${s.key}">＋掛一個句子模板</button>
+        <div class="chooser-box" id="chooser-${s.key}" style="display:none;"></div>
+      </div>
+    `).join('');
+
+    slots.forEach(s=>{
+      const refsList = document.getElementById('refs-'+s.key);
+      refsList.innerHTML = s.refs.map((ref, idx)=>{
+        const t = templates.find(t=>t.id===ref.templateId);
+        const ex = t ? t.examples.find(e=>e.id===ref.exampleId) : null;
+        return `
+          <div style="margin-bottom:10px; position:relative;">
+            <button class="unlink" data-key="${s.key}" data-idx="${idx}">移除連結</button>
+            <div class="ref-pattern">句型模板：</div>
+            <textarea class="point-content-text rp-edit" data-tid="${t?t.id:''}" style="color:var(--amber);">${t ? escapeHtml(t.pattern||'') : ''}</textarea>
+            <div class="ref-pattern">例句：</div>
+            <textarea class="point-content-text re-edit" data-tid="${t?t.id:''}" data-exid="${ex?ex.id:''}">${ex ? escapeHtml(ex.text) : ''}</textarea>
+          </div>
+        `;
+      }).join('');
+      refsList.querySelectorAll('.unlink').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          if(!confirm('確定要移除這個連結嗎？（只會移除連結，不會刪除通用句子裡的模板/例句本身）')) return;
+          const slot = getSlot(s.key);
+          slot.refs.splice(Number(btn.dataset.idx), 1);
+          await persistTopics();
+          renderUsageBlocks();
+        });
+      });
+      refsList.querySelectorAll('.rp-edit').forEach(el=>{
+        autoResize(el);
+        el.addEventListener('blur', async ()=>{
+          const t = templates.find(t=>t.id===el.dataset.tid);
+          if(!t) return;
+          t.pattern = el.value.trim();
+          await persistPatterns();
+        });
+      });
+      refsList.querySelectorAll('.re-edit').forEach(el=>{
+        autoResize(el);
+        el.addEventListener('blur', async ()=>{
+          const t = templates.find(t=>t.id===el.dataset.tid);
+          if(!t) return;
+          const ex = t.examples.find(e=>e.id===el.dataset.exid);
+          if(!ex) return;
+          ex.text = el.value.trim();
+          await persistPatterns();
+        });
+      });
+    });
+
+    usageWrap.querySelectorAll('.add-usage-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const key = btn.dataset.key;
+        const box = document.getElementById('chooser-'+key);
+        const isOpen = box.style.display !== 'none';
+        usageWrap.querySelectorAll('.chooser-box').forEach(b=>b.style.display='none');
+        box.style.display = isOpen ? 'none' : 'block';
+        if(!isOpen) renderChooser(key, box);
+      });
+    });
+  }
+
+  function getSlot(key){
+    if(key==='mcTop') return q.mcTop;
+    if(key==='mcBottom') return q.mcBottom;
+    return q.points[key];
+  }
+
+  function renderChooser(key, box){
+    box.innerHTML = `
+      <div class="ast-row" style="margin-bottom:8px;">
+        <span class="hand-label">句型模板</span>
+        <select class="yellow-select" id="chooseTemplate-${key}" style="flex:1 1 auto;">
+          ${templates.map(t=>`<option value="${t.id}">${escapeHtml((t.pattern||'(未命名句型)').slice(0,50))}</option>`).join('')}
+        </select>
+      </div>
+      <div class="hand-label">例句</div>
+      <textarea class="point-content-text" id="newExampleText-${key}" placeholder="寫一句可以直接用在這個論點的例句"></textarea>
+      <div class="form-actions">
+        <button class="btn btn-primary" id="confirmChoose-${key}">加入</button>
+        <button class="btn btn-ghost" id="cancelChoose-${key}">取消</button>
+      </div>
+    `;
+    document.getElementById('cancelChoose-'+key).addEventListener('click', ()=>{ box.style.display='none'; });
+
+    document.getElementById('confirmChoose-'+key).addEventListener('click', async ()=>{
+      const templateId = document.getElementById('chooseTemplate-'+key).value;
+      const t = templates.find(t=>t.id===templateId);
+      if(!t){ alert('請先到「參考資料 → 通用句子」建立句型模板'); return; }
+
+      const newText = document.getElementById('newExampleText-'+key).value.trim();
+      if(!newText){ alert('請輸入例句'); return; }
+
+      // 例句直接寫進通用句子的模板，兩邊同步
+      const newEx = {id:'ex'+Date.now()+Math.random().toString(36).slice(2,6), text:newText, topic: topicsState.area};
+      t.examples.push(newEx);
+      await persistPatterns();
+
+      getSlot(key).refs.push({templateId, exampleId:newEx.id});
+      await persistTopics();
+      box.style.display = 'none';
+      renderUsageBlocks();
+    });
+  }
+}
+
+
+async function persistEntries(){
+  try{ await LocalStore.set(STORAGE_KEY, JSON.stringify(entries)); }catch(e){ console.error(e); }
+}
+async function persistEssays(){
+  try{ await LocalStore.set(ESSAY_KEY, JSON.stringify(essays)); }catch(e){ console.error(e); }
+}
+
+function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ---------- 自動調整 textarea 高度，避免內容被遮住要滾輪 ---------- */
+function autoResize(el){
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+function autoResizeAll(root){
+  (root || document).querySelectorAll('textarea').forEach(autoResize);
+}
+document.addEventListener('input', (e)=>{
+  if(e.target && e.target.tagName === 'TEXTAREA') autoResize(e.target);
+});
+
+function renderBank(){
+  const list = document.getElementById('bankList');
+  const topicF = document.getElementById('topicFilter').value;
+  let filtered = entries.filter(e => (dimFilter==='all' || e.dim===dimFilter) && (topicF==='all' || e.topic===topicF));
+  if(filtered.length===0){
+    list.innerHTML = '<div class="empty-note">這個篩選條件下還沒有記錄，點上面「＋ 新增批改記錄」開始建立。</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(e => `
+    <div class="card">
+      <button class="btn-del" data-id="${e.id}">刪除</button>
+      <div class="sb-tagrow">
+        <span class="sb-dimtag">${e.dim}</span>
+        <span class="sb-topictag">${e.topic}</span>
+        ${e.score ? `<span class="sb-score">${escapeHtml(e.score)}</span>` : ''}
+      </div>
+      ${e.wrong ? `<div class="sb-wrong">${escapeHtml(e.wrong)}</div>` : ''}
+      ${e.correct ? `<div class="sb-correct">${escapeHtml(e.correct)}</div>` : ''}
+      ${e.errtype ? `<div class="sb-meta"><b>錯誤：</b>${escapeHtml(e.errtype)}</div>` : ''}
+      ${e.fix ? `<div class="sb-meta"><b>修改方式：</b>${escapeHtml(e.fix)}</div>` : ''}
+      ${e.concept ? `<div class="sb-concept"><b>核心觀念</b>${escapeHtml(e.concept)}</div>` : ''}
+    </div>
+  `).join('');
+  list.querySelectorAll('.btn-del').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(!confirm('確定要刪除這則批改記錄嗎？刪除後無法復原。')) return;
+      entries = entries.filter(e=>e.id!==btn.dataset.id);
+      await persistEntries();
+      renderBank();
+    });
+  });
+}
+document.querySelectorAll('.dim-pill').forEach(p=>{
+  p.addEventListener('click', ()=>{
+    document.querySelectorAll('.dim-pill').forEach(x=>x.classList.remove('active'));
+    p.classList.add('active');
+    dimFilter = p.dataset.dim;
+    renderBank();
+  });
+});
+document.getElementById('topicFilter').addEventListener('change', renderBank);
+document.getElementById('toggleForm').addEventListener('click', ()=>{
+  document.getElementById('formBox').classList.toggle('open');
+});
+document.getElementById('cancelEntry').addEventListener('click', ()=>{
+  document.getElementById('formBox').classList.remove('open');
+});
+document.getElementById('saveEntry').addEventListener('click', async ()=>{
+  const entry = {
+    id: 'e'+Date.now()+Math.random().toString(36).slice(2,6),
+    topic: document.getElementById('f-topic').value,
+    dim: document.getElementById('f-dim').value,
+    score: document.getElementById('f-score').value.trim(),
+    zh: document.getElementById('f-zh').value.trim(),
+    wrong: document.getElementById('f-wrong').value.trim(),
+    correct: document.getElementById('f-correct').value.trim(),
+    errtype: document.getElementById('f-errtype').value.trim(),
+    fix: document.getElementById('f-fix').value.trim(),
+    concept: document.getElementById('f-concept').value.trim()
+  };
+  if(!entry.wrong && !entry.correct){ alert('至少要填寫錯誤句子或正確句子'); return; }
+  entries.unshift(entry);
+  await persistEntries();
+  ['f-score','f-zh','f-wrong','f-correct','f-errtype','f-fix','f-concept'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('formBox').classList.remove('open');
+  renderBank();
+});
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='error') loadErrorTest();
+    if(btn.dataset.tab==='topics') renderTopicsPanel();
+  });
+});
+
+let currentExam = 'email';
+document.getElementById('examSwitch').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  document.querySelectorAll('#examSwitch button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentExam = btn.dataset.exam;
+  renderEssays();
+});
+
+let addFormTopicQuestionId = null;
+document.getElementById('toggleEssayForm').addEventListener('click', ()=>{
+  document.getElementById('essayFormBox').classList.toggle('open');
+  if(document.getElementById('correctionList').children.length===0) addCorrectionBlock();
+  renderLinkChooser(document.getElementById('topicLinkContainer-add'), addFormTopicQuestionId, (qid)=>{ addFormTopicQuestionId = qid; }, 'add');
+});
+document.getElementById('cancelEssay').addEventListener('click', ()=>{
+  const box = document.getElementById('essayFormBox');
+  const hasContent = document.getElementById('e-topic').value.trim() ||
+    addFormTopicQuestionId ||
+    document.getElementById('e-response').value.trim() ||
+    document.getElementById('e-revised').value.trim() ||
+    document.getElementById('e-language').value.trim() ||
+    Array.from(document.getElementById('correctionList').querySelectorAll('textarea.f, input.f')).some(el=>el.value.trim());
+  if(hasContent && !confirm('這份還沒儲存，取消會把剛剛打的內容全部清空，確定要取消嗎？')) return;
+  resetEssayForm();
+});
+
+function addCorrectionBlock(container, data){
+  container = container || document.getElementById('correctionList');
+  data = data || {};
+  const wrap = document.createElement('div');
+  wrap.className = 'mini-correction-form';
+  wrap.innerHTML = `
+    <button type="button" class="rm">移除</button>
+    <div class="form-row2">
+      <div>
+        <label class="f" style="margin-top:0;">維度</label>
+        <select class="f mc-dim">
+          <option>Relevance</option><option>Organization</option><option>Development</option><option>Language</option>
+        </select>
+      </div>
+      <div>
+        <label class="f" style="margin-top:0;">分數（選填）</label>
+        <input class="f mc-score" placeholder="例如 3.5/5">
+      </div>
+    </div>
+    <label class="f">中文原意（選填，用於錯誤測驗）</label>
+    <textarea class="f mc-zh"></textarea>
+    <label class="f">錯誤句子</label>
+    <textarea class="f mc-wrong"></textarea>
+    <label class="f">正確句子（可多句換行）</label>
+    <textarea class="f mc-correct"></textarea>
+    <label class="f">犯了什麼錯誤</label>
+    <textarea class="f mc-errtype"></textarea>
+    <label class="f">怎麼修改</label>
+    <textarea class="f mc-fix"></textarea>
+    <label class="f">核心觀念</label>
+    <textarea class="f mc-concept"></textarea>
+  `;
+  wrap.querySelector('.mc-dim').value = data.dim || 'Relevance';
+  wrap.querySelector('.mc-score').value = data.score || '';
+  wrap.querySelector('.mc-zh').value = data.zh || '';
+  wrap.querySelector('.mc-wrong').value = data.wrong || '';
+  wrap.querySelector('.mc-correct').value = data.correct || '';
+  wrap.querySelector('.mc-errtype').value = data.errtype || '';
+  wrap.querySelector('.mc-fix').value = data.fix || '';
+  wrap.querySelector('.mc-concept').value = data.concept || '';
+  wrap.querySelector('.rm').addEventListener('click', ()=>{
+    const hasContent = Array.from(wrap.querySelectorAll('textarea.f, input.f')).some(el=>el.value.trim());
+    if(hasContent && !confirm('這則訂正已經有內容，確定要移除嗎？（存檔前都還來得及，但移除後這裡的內容就沒了）')) return;
+    wrap.remove();
+  });
+  container.appendChild(wrap);
+  autoResizeAll(wrap);
+}
+function readCorrectionBlocks(container){
+  return Array.from(container.children).map(b=>({
+    dim: b.querySelector('.mc-dim').value,
+    score: b.querySelector('.mc-score').value.trim(),
+    zh: b.querySelector('.mc-zh').value.trim(),
+    wrong: b.querySelector('.mc-wrong').value.trim(),
+    correct: b.querySelector('.mc-correct').value.trim(),
+    errtype: b.querySelector('.mc-errtype').value.trim(),
+    fix: b.querySelector('.mc-fix').value.trim(),
+    concept: b.querySelector('.mc-concept').value.trim()
+  })).filter(c=>c.wrong || c.correct);
+}
+document.getElementById('addCorrection').addEventListener('click', ()=>addCorrectionBlock());
+
+function resetEssayForm(){
+  document.getElementById('e-topic').value='';
+  addFormTopicQuestionId = null;
+  document.getElementById('e-response').value='';
+  document.getElementById('e-revised').value='';
+  document.getElementById('e-language').value='';
+  document.getElementById('correctionList').innerHTML='';
+  document.getElementById('essayFormBox').classList.remove('open');
+}
+
+document.getElementById('saveEssay').addEventListener('click', async ()=>{
+  const topic = document.getElementById('e-topic').value.trim();
+  const response = document.getElementById('e-response').value.trim();
+  const revised = document.getElementById('e-revised').value.trim();
+  const languageNotes = document.getElementById('e-language').value.trim();
+  if(!response){ alert('至少要貼上你的回答'); return; }
+
+  const corrections = readCorrectionBlocks(document.getElementById('correctionList'));
+
+  const essay = { id:'ess'+Date.now(), examType: currentExam, topic, topicQuestionId: addFormTopicQuestionId, response, revised, languageNotes, corrections };
+  essays.unshift(essay);
+  await persistEssays();
+
+  const topicTag = currentExam==='discussion' ? guessDiscussionTopic(topic) : '其他';
+  corrections.forEach(c=>{
+    entries.unshift({
+      id:'e'+Date.now()+Math.random().toString(36).slice(2,6),
+      topic: topicTag, dim: c.dim, score: c.score, zh: c.zh, wrong: c.wrong,
+      correct: c.correct, errtype: c.errtype, fix: c.fix, concept: c.concept
+    });
+  });
+  if(corrections.length) await persistEntries();
+
+  resetEssayForm();
+  renderBank();
+  renderEssays();
+});
+
+function guessDiscussionTopic(topicText){
+  const topics = Object.keys(examPrompts.discussion);
+  for(const t of topics){ if(examPrompts.discussion[t].some(q=>topicText.includes(q.slice(0,6)))) return t; }
+  return '其他';
+}
+
+let editingEssayId = null;
+
+function renderEssays(){
+  const list = document.getElementById('essayList');
+  const filtered = essays.filter(e=>e.examType===currentExam);
+  if(filtered.length===0){
+    list.innerHTML = '<div class="empty-note">這個類型還沒有模考記錄，點上面「＋ 新增模考記錄」開始建立。</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(e=>{
+    if(editingEssayId === e.id){
+      return `
+        <div class="essay-card">
+          <div class="essay-head">
+            <div class="essay-topic">編輯模考記錄</div>
+            <div class="essay-type">${e.examType}</div>
+          </div>
+          <div class="essay-body open">
+            <label class="f" style="margin-top:0;">主題／題目</label>
+            <textarea class="f edit-topic">${escapeHtml(e.topic)}</textarea>
+            <label class="f">大綱（連結到 Topics 題目，內容跟 Topics 分頁同步）</label>
+            <div id="topicLinkContainer-edit-${e.id}"></div>
+            <label class="f">我的回答</label>
+            <textarea class="f edit-response" style="min-height:140px;">${escapeHtml(e.response)}</textarea>
+            <label class="f">訂正後版本（整篇修改後的完整內容）</label>
+            <textarea class="f edit-revised" style="min-height:140px;">${escapeHtml(e.revised||'')}</textarea>
+            <label class="f">Language</label>
+            <textarea class="f edit-language">${escapeHtml(e.languageNotes||'')}</textarea>
+            <div class="essay-corrections">
+              <label class="f" style="margin-top:0;">錯誤訂正</label>
+              <div id="editCorrList-${e.id}"></div>
+              <button class="btn btn-ghost edit-add-corr" data-id="${e.id}" type="button">＋ 新增一則訂正</button>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary edit-save" data-id="${e.id}">儲存修改</button>
+              <button class="btn btn-ghost edit-cancel" data-id="${e.id}">取消</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    return `
+    <div class="essay-card">
+      <div class="essay-head" data-id="${e.id}" style="cursor:default;">
+        <div class="essay-topic">${escapeHtml((e.topic||'（未填主題）').slice(0,60))}${(e.topic||'').length>60?'…':''}</div>
+        <div class="essay-type">${e.examType}</div>
+      </div>
+      ${renderOutlineMirrorHtml(e.topicQuestionId, e.outline)}
+      <button class="btn btn-ghost toggle-essay-body" data-id="${e.id}" style="margin-bottom:10px;">▾ 展開我的回答／訂正</button>
+      <div class="essay-body" id="body-${e.id}">
+        <div class="essay-block-label">我的回答</div>
+        <div class="essay-text">${escapeHtml(e.response)}</div>
+        ${e.revised ? `<div class="essay-block-label">訂正後版本</div><div class="essay-text">${escapeHtml(e.revised)}</div>` : ''}
+        <div class="essay-block-label">Language</div>
+        <div class="essay-text">${e.languageNotes ? escapeHtml(e.languageNotes) : '<span style="color:var(--paper-dim); font-style:italic;">（尚未填寫）</span>'}</div>
+        ${e.corrections && e.corrections.length ? `
+          <div class="essay-corrections">
+            <div class="essay-block-label">錯誤訂正（${e.corrections.length}）</div>
+            ${e.corrections.map(c=>`
+              <div class="card" style="margin-bottom:8px;">
+                <div class="sb-tagrow"><span class="sb-dimtag">${c.dim}</span>${c.score?`<span class="sb-score">${escapeHtml(c.score)}</span>`:''}</div>
+                ${c.wrong?`<div class="sb-wrong">${escapeHtml(c.wrong)}</div>`:''}
+                ${c.correct?`<div class="sb-correct">${escapeHtml(c.correct)}</div>`:''}
+                ${c.errtype?`<div class="sb-meta"><b>錯誤：</b>${escapeHtml(c.errtype)}</div>`:''}
+                ${c.fix?`<div class="sb-meta"><b>修改方式：</b>${escapeHtml(c.fix)}</div>`:''}
+                ${c.concept?`<div class="sb-concept"><b>核心觀念</b>${escapeHtml(c.concept)}</div>`:''}
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button class="btn btn-primary edit-essay" data-id="${e.id}">編輯</button>
+          <button class="btn btn-ghost del-essay" data-id="${e.id}">刪除這筆模考記錄</button>
+        </div>
+      </div>
+    </div>
+  `;
+  }).join('');
+
+  list.querySelectorAll('.toggle-essay-body').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.getElementById('body-'+btn.dataset.id).classList.toggle('open');
+    });
+  });
+  list.querySelectorAll('.del-essay').forEach(btn=>{
+    btn.addEventListener('click', async (ev)=>{
+      ev.stopPropagation();
+      if(!confirm('確定要刪除這筆模考記錄嗎？裡面的回答跟訂正會一併刪除，無法復原。')) return;
+      essays = essays.filter(e=>e.id!==btn.dataset.id);
+      await persistEssays();
+      renderEssays();
+    });
+  });
+  list.querySelectorAll('.edit-essay').forEach(btn=>{
+    btn.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      editingEssayId = btn.dataset.id;
+      renderEssays();
+    });
+  });
+  list.querySelectorAll('.edit-cancel').forEach(btn=>{
+    btn.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      editingEssayId = null;
+      renderEssays();
+    });
+  });
+  list.querySelectorAll('.edit-add-corr').forEach(btn=>{
+    btn.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      addCorrectionBlock(document.getElementById('editCorrList-'+btn.dataset.id));
+    });
+  });
+  list.querySelectorAll('.edit-save').forEach(btn=>{
+    btn.addEventListener('click', async (ev)=>{
+      ev.stopPropagation();
+      const id = btn.dataset.id;
+      const essay = essays.find(e=>e.id===id);
+      if(!essay) return;
+      const card = btn.closest('.essay-card');
+      essay.topic = card.querySelector('.edit-topic').value.trim();
+      essay.response = card.querySelector('.edit-response').value.trim();
+      essay.revised = card.querySelector('.edit-revised').value.trim();
+      essay.languageNotes = card.querySelector('.edit-language').value.trim();
+      essay.corrections = readCorrectionBlocks(document.getElementById('editCorrList-'+id));
+      await persistEssays();
+      editingEssayId = null;
+      renderEssays();
+    });
+  });
+
+  // 編輯模式下，把每筆既有訂正填進對應的訂正表單區塊，並初始化大綱連結選擇器
+  if(editingEssayId){
+    const e = essays.find(x=>x.id===editingEssayId);
+    const container = document.getElementById('editCorrList-'+editingEssayId);
+    if(e && container){
+      (e.corrections||[]).forEach(c=>addCorrectionBlock(container, c));
+    }
+    const linkContainer = document.getElementById('topicLinkContainer-edit-'+editingEssayId);
+    if(e && linkContainer){
+      renderLinkChooser(linkContainer, e.topicQuestionId, async (qid)=>{
+        e.topicQuestionId = qid;
+        await persistEssays();
+      }, 'edit-'+editingEssayId);
+    }
+  }
+  bindQuestionFieldEditors(list);
+  bindAreaSubtopicSelectors(list);
+  autoResizeAll(list);
+}
+
+let etPool = [];
+let etIdx = 0;
+function loadErrorTest(){
+  etPool = entries.filter(e => e.zh && e.correct);
+  etIdx = 0;
+  const card = document.getElementById('etCard');
+  if(etPool.length===0){
+    card.innerHTML = '<div class="empty-note">還沒有任何記錄同時填了「中文原意」和「正確句子」，先去句庫或模考新增幾筆才能用錯誤測驗。</div>';
+    document.getElementById('etProgress').textContent = '';
+    return;
+  }
+  card.innerHTML = `
+    <div class="et-zh" id="etZh"></div>
+    <div class="et-reveal" id="etReveal">
+      <div class="sb-meta"><b>正確寫法：</b></div>
+      <div id="etCorrectList"></div>
+      <div class="sb-meta" style="margin-top:8px;"><b>你原本寫錯：</b> <span id="etWrong" style="color:var(--bad);font-style:italic;"></span></div>
+    </div>
+    <div class="et-controls">
+      <button class="btn btn-primary" id="etReveaBtn">顯示答案</button>
+      <button class="btn" id="etNextBtn">下一題 →</button>
+    </div>
+  `;
+  document.getElementById('etReveaBtn').addEventListener('click', ()=>document.getElementById('etReveal').classList.add('show'));
+  document.getElementById('etNextBtn').addEventListener('click', ()=>{ etIdx=(etIdx+1)%etPool.length; showErrorQ(); });
+  showErrorQ();
+}
+function showErrorQ(){
+  const e = etPool[etIdx];
+  document.getElementById('etProgress').textContent = `第 ${etIdx+1} / ${etPool.length} 題　·　${e.dim}　·　${e.topic}`;
+  document.getElementById('etZh').textContent = e.zh;
+  document.getElementById('etCorrectList').innerHTML = `<div class="sb-correct">${escapeHtml(e.correct)}</div>`;
+  document.getElementById('etWrong').textContent = e.wrong || '（未記錄原錯誤句）';
+  document.getElementById('etReveal').classList.remove('show');
+}
+
+document.getElementById('refConnect').innerHTML = connectPhrases.map(p=>`<span>${p}</span>`).join('');
+
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    entries, essays, patterns, templates, topicsData
+  };
+  const json = JSON.stringify(payload, null, 2);
+  document.getElementById('exportArea').value = json;
+});
+document.getElementById('downloadBtn').addEventListener('click', ()=>{
+  const payload = { exportedAt: new Date().toISOString(), entries, essays, patterns, templates, topicsData };
+  const json = JSON.stringify(payload, null, 2);
+  document.getElementById('exportArea').value = json;
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'toefl-writing-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+document.getElementById('importBtn').addEventListener('click', async ()=>{
+  const raw = document.getElementById('importArea').value.trim();
+  const status = document.getElementById('importStatus');
+  if(!raw){ status.textContent = '請先貼上備份文字'; return; }
+  let data;
+  try{ data = JSON.parse(raw); }
+  catch(e){ status.textContent = '格式錯誤，不是有效的 JSON'; return; }
+  if(!confirm('確定要用這份備份覆蓋目前所有資料嗎？這個動作無法復原。')) return;
+  entries = Array.isArray(data.entries) ? data.entries : [];
+  essays = Array.isArray(data.essays) ? data.essays : [];
+  patterns = Array.isArray(data.patterns) ? data.patterns : [];
+  templates = Array.isArray(data.templates) ? data.templates : [];
+  topicsData = data.topicsData && Array.isArray(data.topicsData.subtopics) ? data.topicsData : { subtopics: [], questions: [] };
+  await persistEntries();
+  await persistEssays();
+  await persistPatterns();
+  await persistTopics();
+  renderBank();
+  renderEssays();
+  renderPatTabs();
+  renderPatList();
+  topicsState = { area: TOPIC_TAGS[0], level: 'subtopics', subtopicId: null, questionId: null };
+  status.textContent = '還原完成 · ' + new Date().toLocaleTimeString();
+  document.getElementById('importArea').value = '';
+});
+
+document.getElementById('syncUrlInput').value = getSyncUrl();
+document.getElementById('saveSyncUrl').addEventListener('click', async ()=>{
+  const url = document.getElementById('syncUrlInput').value.trim();
+  setSyncUrl(url);
+  const status = document.getElementById('syncStatus');
+  if(!url){ status.textContent = '已改為只存本機'; return; }
+  status.textContent = '連線中…';
+  await cloudLoad();
+  if(cloudCache === null){ status.textContent = '連不上，請檢查網址'; return; }
+  // 把目前本機資料推上雲端
+  cloudCache = cloudCache || {};
+  for(const k of [STORAGE_KEY, ESSAY_KEY, PATTERN_KEY, TOPICS_KEY]){
+    const v = localStorage.getItem(k);
+    if(v !== null && !cloudCache[k]) cloudCache[k] = v;
+  }
+  await cloudSave();
+  await loadAll();
+  status.textContent = '同步完成 · ' + new Date().toLocaleTimeString();
+});
+
+loadAll();
+</script>
+</body>
+</html>
