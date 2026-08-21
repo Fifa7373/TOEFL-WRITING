@@ -1331,6 +1331,8 @@ function renderQuestionDetail(root){
       await persistTopics();
       box.style.display = 'none';
       renderUsageBlocks();
+      renderPatList();          // 同步更新「參考資料 → 句型庫」
+      syncMsg('例句已加入模板「' + (t.pattern||'未命名') + '」');
     });
   }
 }
@@ -1433,6 +1435,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
     if(btn.dataset.tab==='error') loadErrorTest();
     if(btn.dataset.tab==='topics') renderTopicsPanel();
+    if(btn.dataset.tab==='ref'){ renderPatTabs(); renderPatList(); }
   });
 });
 
