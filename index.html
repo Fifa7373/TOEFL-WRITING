@@ -304,7 +304,15 @@
     <label class="f">主題／題目（把題目或討論版留言貼上）</label>
     <textarea class="f" id="e-topic" placeholder="貼上這次模考的題目或 Academic Discussion 留言"></textarea>
     <label class="f">大綱（連結到 Topics 題目，內容跟 Topics 分頁同步）</label>
-    <div id="topicLinkContainer-add"></div>
+    <div class="ast-row">
+      <span class="hand-label">主題</span>
+      <select class="yellow-select" id="e-area"></select>
+      <span class="hand-label">子主題</span>
+      <select class="yellow-select" id="e-subtopic"></select>
+    </div>
+    <label class="f">完整主題/題目</label>
+    <textarea class="f" id="e-fullprompt" style="min-height:100px;" placeholder="把完整題目貼在這裡"></textarea>
+
     <label class="f">我的回答（完整貼上）</label>
     <textarea class="f" id="e-response" style="min-height:140px;" placeholder="貼上這次寫的完整回答"></textarea>
     <label class="f">訂正後版本（整篇修改後的完整內容）</label>
@@ -624,6 +632,7 @@ async function loadAll(){
       }
       if(p.fpr !== undefined) delete p.fpr;
       if(p.label === undefined) p.label = '';
+      if(p.summary === undefined) p.summary = '';
       if(p.fact === undefined) p.fact = '';
       if(p.process === undefined) p.process = '';
       if(p.result === undefined) p.result = '';
@@ -961,7 +970,7 @@ function pointOuterHtml(q, k){
   return `
     <div class="pt-row">
       <div class="pt-left">${fieldBox(q.id, `points.${k}.label`, q.points[k].label, '')}</div>
-      <div class="pt-right">${underlineField(q.id, `points.${k}.fact`, q.points[k].fact, '')}</div>
+      <div class="pt-right">${underlineField(q.id, `points.${k}.summary`, q.points[k].summary, '')}</div>
     </div>
   `;
 }
@@ -1016,57 +1025,119 @@ function renderOutlineMirrorHtml(topicQuestionId, legacyOutline){
 }
 
 /* ---- 共用：Topics 題目直選器（三個下拉，直接選，不用新增流程） ---- */
-function renderLinkChooser(container, currentId, onChange, uid){
-  const curQ = currentId ? topicsData.questions.find(x=>x.id===currentId) : null;
-  const curSt = curQ ? topicsData.subtopics.find(s=>s.id===curQ.subtopicId) : null;
-  const curArea = curSt ? curSt.area : TOPIC_TAGS[0];
-
-  container.innerHTML = `
+/* ===== 模考自有大綱（不連結 Topics，不用下拉） ===== */
+function ensureEssayOutline(e){
+  if(!e.outlineData){
+    const mk = ()=>({label:'', fact:'', process:'', result:''});
+    e.outlineData = {
+      prompt: '',
+      mcTop:{concept:'', target:''},
+      mcBottom:{concept:'', target:''},
+      points:{ A: mk(), B: mk(), C: mk() }
+    };
+  }
+  return e.outlineData;
+}
+function eField(eid, path, value, placeholder){
+  return `<textarea class="point-content-text" data-efield="${path}" data-eid="${eid}" placeholder="${escapeHtml(placeholder||'')}">${escapeHtml(value||'')}</textarea>`;
+}
+function eUnderline(eid, path, value, placeholder){
+  return `<textarea class="underline-field" data-efield="${path}" data-eid="${eid}" placeholder="${escapeHtml(placeholder||'')}">${escapeHtml(value||'')}</textarea>`;
+}
+/* ===== 模考：主題／子主題選擇 + 完整主題/題目 ===== */
+function essayTopicPickerHtml(e){
+  const curSt = e.subtopicId ? topicsData.subtopics.find(s=>s.id===e.subtopicId) : null;
+  const curArea = e.areaTag || (curSt ? curSt.area : TOPIC_TAGS[0]);
+  return `
     <div class="ast-row">
       <span class="hand-label">主題</span>
-      <select class="yellow-select" id="lc-area-${uid}">
+      <select class="yellow-select es-area" data-eid="${e.id}">
         ${TOPIC_TAGS.map(t=>`<option value="${t}" ${t===curArea?'selected':''}>${t}</option>`).join('')}
       </select>
       <span class="hand-label">子主題</span>
-      <select class="yellow-select" id="lc-subtopic-${uid}"></select>
-      <span class="hand-label">題目</span>
-      <select class="yellow-select" id="lc-question-${uid}"></select>
-    </div>
-  `;
-
-  const areaSel = document.getElementById('lc-area-'+uid);
-  const stSel = document.getElementById('lc-subtopic-'+uid);
-  const qSel = document.getElementById('lc-question-'+uid);
-
-  function fillSubtopics(selId){
-    const subs = topicsData.subtopics.filter(s=>s.area===areaSel.value);
-    stSel.innerHTML = subs.length
-      ? subs.map(s=>`<option value="${s.id}" ${s.id===selId?'selected':''}>${escapeHtml(s.name)}</option>`).join('')
-      : `<option value="">（這個主題還沒有子主題）</option>`;
-  }
-  function fillQuestions(selId){
-    const qs = topicsData.questions.filter(q=>q.subtopicId===stSel.value);
-    qSel.innerHTML = qs.length
-      ? qs.map(q=>`<option value="${q.id}" ${q.id===selId?'selected':''}>${escapeHtml(q.title||'（未命名）')}</option>`).join('')
-      : `<option value="">（這個子主題還沒有題目）</option>`;
-  }
-
-  fillSubtopics(curSt ? curSt.id : null);
-  fillQuestions(curQ ? curQ.id : null);
-
-  areaSel.addEventListener('change', async ()=>{
-    fillSubtopics(); fillQuestions();
-    await onChange(qSel.value || null);
-    renderEssays();
+      <select class="yellow-select es-subtopic" data-eid="${e.id}"></select>
+    </div>`;
+}
+function bindEssayTopicPickers(root){
+  root.querySelectorAll('.es-area').forEach(areaSel=>{
+    const eid = areaSel.dataset.eid;
+    const e = essays.find(x=>x.id===eid);
+    if(!e) return;
+    const stSel = root.querySelector(`.es-subtopic[data-eid="${eid}"]`);
+    function fill(){
+      const subs = topicsData.subtopics.filter(s=>s.area===areaSel.value);
+      stSel.innerHTML = subs.length
+        ? subs.map(s=>`<option value="${s.id}" ${s.id===e.subtopicId?'selected':''}>${escapeHtml(s.name)}</option>`).join('')
+        : `<option value="">（這個主題還沒有子主題）</option>`;
+    }
+    fill();
+    areaSel.addEventListener('change', async ()=>{
+      e.areaTag = areaSel.value; fill();
+      e.subtopicId = stSel.value || null;
+      await persistEssays();
+    });
+    stSel.addEventListener('change', async ()=>{
+      e.subtopicId = stSel.value || null;
+      await persistEssays();
+    });
   });
-  stSel.addEventListener('change', async ()=>{
-    fillQuestions();
-    await onChange(qSel.value || null);
-    renderEssays();
+}
+function bindEssayFullPrompt(root){
+  root.querySelectorAll('.es-fullprompt').forEach(el=>{
+    autoResize(el);
+    el.addEventListener('blur', async ()=>{
+      const e = essays.find(x=>x.id===el.dataset.eid);
+      if(!e) return;
+      e.fullPrompt = el.value.trim();
+      await persistEssays();
+    });
   });
-  qSel.addEventListener('change', async ()=>{
-    await onChange(qSel.value || null);
-    renderEssays();
+}
+
+function essayOutlineHtml(e){
+  const o = ensureEssayOutline(e);
+  const mc = (slot, suffix) => `
+    <div class="essay-block-label" style="margin-top:0;">Main Concept → Target Topic${suffix}</div>
+    <div class="mc-row">
+      <div class="mc-box">${eField(e.id, slot+'.concept', o[slot].concept, 'Main Concept')}</div>
+      <div class="mc-arrow">⟶</div>
+      <div class="mc-box">${eField(e.id, slot+'.target', o[slot].target, 'Target Topic')}</div>
+    </div>`;
+  const pt = (k) => `
+    <div class="pt-row">
+      <div class="pt-left">${eField(e.id, `points.${k}.label`, o.points[k].label, k)}</div>
+      <div class="fpr-group">
+        <div class="fpr-cell"><div class="fpr-caption"><span class="dot g"></span>Fact</div>${eField(e.id, `points.${k}.fact`, o.points[k].fact, '')}</div>
+        <div class="fpr-arrow">⟶</div>
+        <div class="fpr-cell"><div class="fpr-caption"><span class="dot y"></span>Process</div>${eField(e.id, `points.${k}.process`, o.points[k].process, '')}</div>
+        <div class="fpr-arrow">⟶</div>
+        <div class="fpr-cell"><div class="fpr-caption"><span class="dot y"></span>Result</div>${eField(e.id, `points.${k}.result`, o.points[k].result, '')}</div>
+      </div>
+    </div>`;
+  return `
+    <div class="card" style="margin-bottom:12px;">
+      <div class="essay-block-label" style="margin-top:0;">完整題目</div>
+      ${eField(e.id, 'prompt', o.prompt, '把原題目貼在這裡')}
+      ${mc('mcTop','（開頭）')}
+      ${['A','B','C'].map((k,i)=>`${i?'<div class="down-arrow">↓</div>':''}${pt(k)}`).join('')}
+      <div class="down-arrow">↓</div>
+      ${mc('mcBottom','（結尾）')}
+    </div>`;
+}
+function bindEssayOutlineEditors(root){
+  root.querySelectorAll('[data-efield]').forEach(el=>{
+    autoResize(el);
+    el.addEventListener('blur', async ()=>{
+      const e = essays.find(x=>x.id===el.dataset.eid);
+      if(!e) return;
+      const o = ensureEssayOutline(e);
+      const p = el.dataset.efield.split('.');
+      const v = el.value.trim();
+      if(p.length===1) o[p[0]] = v;
+      else if(p[0]==='points') o.points[p[1]][p[2]] = v;
+      else o[p[0]][p[1]] = v;
+      await persistEssays();
+    });
   });
 }
 
@@ -1164,7 +1235,7 @@ function renderQuestionsView(root){
   document.getElementById('saveQuestion').addEventListener('click', async ()=>{
     const title = document.getElementById('newQTitle').value.trim();
     if(!title){ alert('請至少填 Title'); return; }
-    const mkPoint = ()=>({ label:'', fact:'', process:'', result:'', refs: [] });
+    const mkPoint = ()=>({ label:'', summary:'', fact:'', process:'', result:'', refs: [] });
     const q = {
       id:'q'+Date.now()+Math.random().toString(36).slice(2,6),
       subtopicId: topicsState.subtopicId,
@@ -1475,15 +1546,33 @@ document.getElementById('examSwitch').addEventListener('click', (e)=>{
 });
 
 let addFormTopicQuestionId = null;
+function initAddFormPickers(){
+  const areaSel = document.getElementById('e-area');
+  const stSel = document.getElementById('e-subtopic');
+  if(!areaSel.options.length){
+    areaSel.innerHTML = TOPIC_TAGS.map(t=>`<option value="${t}">${t}</option>`).join('');
+    areaSel.addEventListener('change', fillAddSubtopics);
+  }
+  fillAddSubtopics();
+}
+function fillAddSubtopics(){
+  const areaSel = document.getElementById('e-area');
+  const stSel = document.getElementById('e-subtopic');
+  const subs = topicsData.subtopics.filter(s=>s.area===areaSel.value);
+  stSel.innerHTML = subs.length
+    ? subs.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')
+    : `<option value="">（這個主題還沒有子主題）</option>`;
+}
 document.getElementById('toggleEssayForm').addEventListener('click', ()=>{
   document.getElementById('essayFormBox').classList.toggle('open');
   if(document.getElementById('correctionList').children.length===0) addCorrectionBlock();
-  renderLinkChooser(document.getElementById('topicLinkContainer-add'), addFormTopicQuestionId, (qid)=>{ addFormTopicQuestionId = qid; }, 'add');
+  initAddFormPickers();
 });
 document.getElementById('cancelEssay').addEventListener('click', ()=>{
   const box = document.getElementById('essayFormBox');
   const hasContent = document.getElementById('e-topic').value.trim() ||
     addFormTopicQuestionId ||
+    document.getElementById('e-fullprompt').value.trim() ||
     document.getElementById('e-response').value.trim() ||
     document.getElementById('e-revised').value.trim() ||
     document.getElementById('e-language').value.trim() ||
@@ -1557,6 +1646,7 @@ document.getElementById('addCorrection').addEventListener('click', ()=>addCorrec
 function resetEssayForm(){
   document.getElementById('e-topic').value='';
   addFormTopicQuestionId = null;
+  document.getElementById('e-fullprompt').value='';
   document.getElementById('e-response').value='';
   document.getElementById('e-revised').value='';
   document.getElementById('e-language').value='';
@@ -1573,7 +1663,11 @@ document.getElementById('saveEssay').addEventListener('click', async ()=>{
 
   const corrections = readCorrectionBlocks(document.getElementById('correctionList'));
 
-  const essay = { id:'ess'+Date.now(), examType: currentExam, topic, topicQuestionId: addFormTopicQuestionId, response, revised, languageNotes, corrections };
+  const essay = { id:'ess'+Date.now(), examType: currentExam, topic,
+    areaTag: document.getElementById('e-area').value,
+    subtopicId: document.getElementById('e-subtopic').value || null,
+    fullPrompt: document.getElementById('e-fullprompt').value.trim(),
+    response, revised, languageNotes, corrections };
   essays.unshift(essay);
   await persistEssays();
 
@@ -1619,7 +1713,9 @@ function renderEssays(){
             <label class="f" style="margin-top:0;">主題／題目</label>
             <textarea class="f edit-topic">${escapeHtml(e.topic)}</textarea>
             <label class="f">大綱（連結到 Topics 題目，內容跟 Topics 分頁同步）</label>
-            <div id="topicLinkContainer-edit-${e.id}"></div>
+            ${essayTopicPickerHtml(e)}
+            <label class="f">完整主題/題目</label>
+            <textarea class="f es-fullprompt" data-eid="${e.id}" style="min-height:100px;" placeholder="把完整題目貼在這裡">${escapeHtml(e.fullPrompt||'')}</textarea>
             <label class="f">我的回答</label>
             <textarea class="f edit-response" style="min-height:140px;">${escapeHtml(e.response)}</textarea>
             <label class="f">訂正後版本（整篇修改後的完整內容）</label>
@@ -1645,9 +1741,11 @@ function renderEssays(){
         <div class="essay-topic">${escapeHtml((e.topic||'（未填主題）').slice(0,60))}${(e.topic||'').length>60?'…':''}</div>
         <div class="essay-type">${e.examType}</div>
       </div>
-      ${renderOutlineMirrorHtml(e.topicQuestionId, e.outline)}
+      ${essayTopicPickerHtml(e)}
       <button class="btn btn-ghost toggle-essay-body" data-id="${e.id}" style="margin-bottom:10px;">▾ 展開我的回答／訂正</button>
       <div class="essay-body" id="body-${e.id}">
+        <div class="essay-block-label">完整主題/題目</div>
+        <textarea class="f es-fullprompt" data-eid="${e.id}" style="min-height:100px;" placeholder="把完整題目貼在這裡">${escapeHtml(e.fullPrompt||'')}</textarea>
         <div class="essay-block-label">我的回答</div>
         <div class="essay-text">${escapeHtml(e.response)}</div>
         ${e.revised ? `<div class="essay-block-label">訂正後版本</div><div class="essay-text">${escapeHtml(e.revised)}</div>` : ''}
@@ -1736,14 +1834,9 @@ function renderEssays(){
     if(e && container){
       (e.corrections||[]).forEach(c=>addCorrectionBlock(container, c));
     }
-    const linkContainer = document.getElementById('topicLinkContainer-edit-'+editingEssayId);
-    if(e && linkContainer){
-      renderLinkChooser(linkContainer, e.topicQuestionId, async (qid)=>{
-        e.topicQuestionId = qid;
-        await persistEssays();
-      }, 'edit-'+editingEssayId);
-    }
   }
+  bindEssayTopicPickers(list);
+  bindEssayFullPrompt(list);
   bindQuestionFieldEditors(list);
   bindAreaSubtopicSelectors(list);
   autoResizeAll(list);
