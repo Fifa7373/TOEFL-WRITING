@@ -798,18 +798,32 @@ function renderTemplateList(wrap){
   });
   wrap.querySelectorAll('.pc-del[data-kind="template"]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
-      if(!confirm('確定要刪除整個句型模板嗎？底下所有例句會一併刪除，無法復原。')) return;
-      templates = templates.filter(t=>t.id!==btn.dataset.id);
+      if(!confirm('確定要刪除整個句型模板嗎？底下所有例句會一併刪除，Topics 裡對應的連結也會移除，無法復原。')) return;
+      const delId = btn.dataset.id;
+      templates = templates.filter(t=>t.id!==delId);
+      topicsData.questions.forEach(q=>{
+        [q.mcTop, q.mcBottom, q.points.A, q.points.B, q.points.C].forEach(slot=>{
+          if(slot && slot.refs) slot.refs = slot.refs.filter(r=>r.templateId!==delId);
+        });
+      });
+      await persistTopics();
       await persistPatterns();
       renderPatList();
     });
   });
   wrap.querySelectorAll('.pc-del[data-kind="example"]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
-      if(!confirm('確定要刪除這則例句嗎？無法復原。')) return;
+      if(!confirm('確定要刪除這則例句嗎？Topics 裡對應的連結也會一併移除，無法復原。')) return;
       const t = templates.find(t=>t.id===btn.dataset.tid);
       if(!t) return;
-      t.examples = t.examples.filter(e=>e.id!==btn.dataset.exid);
+      const exId = btn.dataset.exid;
+      t.examples = t.examples.filter(e=>e.id!==exId);
+      topicsData.questions.forEach(q=>{
+        [q.mcTop, q.mcBottom, q.points.A, q.points.B, q.points.C].forEach(slot=>{
+          if(slot && slot.refs) slot.refs = slot.refs.filter(r=>r.exampleId!==exId);
+        });
+      });
+      await persistTopics();
       await persistPatterns();
       renderPatList();
     });
@@ -1262,20 +1276,30 @@ function renderQuestionDetail(root){
         autoResize(el);
         el.addEventListener('blur', async ()=>{
           const t = templates.find(t=>t.id===el.dataset.tid);
-          if(!t) return;
+          if(!t){ syncMsg('這個句型模板已被刪除，請重新掛一個'); return; }
           t.pattern = el.value.trim();
           await persistPatterns();
+          renderPatList();
         });
       });
       refsList.querySelectorAll('.re-edit').forEach(el=>{
         autoResize(el);
         el.addEventListener('blur', async ()=>{
           const t = templates.find(t=>t.id===el.dataset.tid);
-          if(!t) return;
-          const ex = t.examples.find(e=>e.id===el.dataset.exid);
-          if(!ex) return;
-          ex.text = el.value.trim();
+          if(!t){ syncMsg('這個句型模板已被刪除，請重新掛一個'); return; }
+          const val = el.value.trim();
+          if(!val) return;
+          let ex = t.examples.find(e=>e.id===el.dataset.exid);
+          if(!ex){
+            // 例句在句型庫被刪掉了 → 用原本的 id 重建，讓連結自動修復
+            ex = { id: el.dataset.exid, text: val, topic: topicsState.area };
+            t.examples.push(ex);
+          } else {
+            ex.text = val;
+          }
           await persistPatterns();
+          renderPatList();
+          syncMsg('例句已存入模板「' + (t.pattern||'未命名') + '」· ' + new Date().toLocaleTimeString());
         });
       });
     });
