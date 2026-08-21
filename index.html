@@ -124,9 +124,9 @@
 
   .pattern-card { background: var(--panel); border: 1px solid var(--line-strong); border-left: 3px solid var(--amber); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; position: relative; }
   .pattern-card .pc-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--paper-dim); margin-bottom: 2px; }
-  .pattern-card .pc-pattern { display: block; width: 100%; box-sizing: border-box; background: transparent; border: none; resize: none; overflow: hidden; font-family: var(--serif); font-size: 14.5px; color: var(--amber); outline: none; min-height: 1.3em; padding: 2px 0; }
-  .pattern-card .pc-example { display: block; width: 100%; box-sizing: border-box; background: transparent; border: none; resize: none; overflow: hidden; font-family: var(--serif); font-size: 13.5px; color: var(--paper-dim); outline: none; min-height: 1.3em; padding: 2px 0; margin-top: 6px; border-top: 1px dashed var(--line); padding-top: 6px; }
-  .pattern-card .pc-phrase { display: block; width: 100%; box-sizing: border-box; background: transparent; border: none; resize: none; overflow: hidden; font-family: var(--serif); font-size: 13.5px; color: var(--teal); outline: none; min-height: 1.3em; padding: 2px 0; }
+  .pattern-card .pc-pattern { display: block; width: 100%; box-sizing: border-box; background: transparent; border: none; resize: none; overflow: hidden; font-family: var(--serif); font-size: 14.5px; line-height: 1.6; color: var(--amber); outline: none; min-height: 2em; padding: 2px 0; }
+  .pattern-card .pc-example { display: block; width: 100%; box-sizing: border-box; background: transparent; border: none; resize: none; overflow: hidden; font-family: var(--serif); font-size: 13.5px; line-height: 1.7; color: var(--paper); outline: none; min-height: 3em; padding: 2px 0; margin-top: 6px; border-top: 1px dashed var(--line); padding-top: 8px; }
+  .pattern-card .pc-phrase { display: block; width: 100%; box-sizing: border-box; background: transparent; border: none; resize: none; overflow: hidden; font-family: var(--serif); font-size: 13.5px; line-height: 1.7; color: var(--teal); outline: none; min-height: 2.4em; padding: 2px 0; }
   .pattern-card .pc-del { position: absolute; top: 8px; right: 10px; background: none; border: none; color: var(--paper-dim); font-family: var(--mono); font-size: 10px; cursor: pointer; }
   .pattern-card .pc-del:hover { color: var(--bad); }
   .pc-add-btn { font-family: var(--mono); font-size: 11px; background: none; border: none; color: var(--amber); cursor: pointer; padding: 0; }
@@ -661,6 +661,7 @@ function renderPatTabs(){
   });
 }
 function renderPatList(){
+  requestAnimationFrame(()=>autoResizeAll(document.getElementById('patList')));
   const wrap = document.getElementById('patList');
   if(currentPatTab === '通用句子'){
     renderTemplateList(wrap);
@@ -743,7 +744,7 @@ function renderTemplateList(wrap){
       <textarea class="pc-phrase" data-field="phrases" data-id="${t.id}">${escapeHtml(t.phrases||'')}</textarea>
       <div class="pc-label" style="margin-top:10px;">例句（依主題標記）</div>
       ${[...t.examples].sort((a,b)=>TOPIC_TAGS.indexOf(a.topic)-TOPIC_TAGS.indexOf(b.topic)).map(ex=>`
-        <div style="border-top:1px dashed var(--line); padding-top:6px; margin-top:6px; position:relative;">
+        <div style="border-top:1px dashed var(--line); padding-top:10px; margin-top:14px; position:relative;">
           <textarea class="pc-example" data-field="text" data-tid="${t.id}" data-exid="${ex.id}">${escapeHtml(ex.text)}</textarea>
           <div class="pc-tagrow">
             ${TOPIC_TAGS.map(tag=>`<div class="pc-tag ${ex.topic===tag?'on':''}" data-tid="${t.id}" data-exid="${ex.id}" data-tag="${tag}">${tag}</div>`).join('')}
