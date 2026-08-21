@@ -363,11 +363,15 @@
 
 <div class="panel" id="panel-backup">
   <div class="card">
-    <div class="essay-block-label" style="margin-top:0;">跨裝置同步（Google Sheets）</div>
+    <div class="essay-block-label" style="margin-top:0;">跨裝置同步（JSONBin.io）</div>
     <p style="font-size:13px; color:var(--paper-dim); line-height:1.6; margin:0 0 10px;">
-      貼上你的 Google Apps Script 網址，電腦和手機就會讀寫同一份資料。留空則只存在這台裝置。
+      到 jsonbin.io 註冊 → 建立一個 Private Bin（內容填 <code>{}</code>）→ 把 Bin ID 和 X-Master-Key 填在下面。
+      電腦和手機填同一組就會共用資料；留空則只存這台裝置。
     </p>
-    <input class="f" id="syncUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+    <label class="f" style="margin-top:0;">Bin ID</label>
+    <input class="f" id="binIdInput" placeholder="例如 65a1b2c3dd...">
+    <label class="f">X-Master-Key</label>
+    <input class="f" id="apiKeyInput" type="password" placeholder="$2a$10$...">
     <div class="form-actions">
       <button class="btn btn-primary" id="saveSyncUrl">儲存並同步</button>
       <span class="sub" id="syncStatus" style="align-self:center;"></span>
@@ -402,47 +406,51 @@
 </div>
 
 <script>
-/* ===== 儲存層：優先用 Google Sheets（跨裝置同步），沒設定就用本機 localStorage ===== */
-const SYNC_URL_KEY = '__gas_sync_url__';
-let cloudCache = null;          // 雲端整包資料的暫存
-let cloudDirty = false;
+/* ===== 儲存層：JSONBin.io 雲端同步，沒設定就用本機 localStorage ===== */
+const BIN_ID_KEY = '__jsonbin_id__';
+const API_KEY_KEY = '__jsonbin_key__';
+let cloudCache = null;
 
-function getSyncUrl(){
-  try { return localStorage.getItem(SYNC_URL_KEY) || ''; } catch(e){ return ''; }
+const getBinId  = () => { try{ return localStorage.getItem(BIN_ID_KEY) || ''; }catch(e){ return ''; } };
+const getApiKey = () => { try{ return localStorage.getItem(API_KEY_KEY) || ''; }catch(e){ return ''; } };
+function setBinCreds(id, key){
+  try{ localStorage.setItem(BIN_ID_KEY, id); localStorage.setItem(API_KEY_KEY, key); }catch(e){}
 }
-function setSyncUrl(url){
-  try { localStorage.setItem(SYNC_URL_KEY, url); } catch(e){}
-}
+function syncMsg(t){ const el = document.getElementById('syncStatus'); if(el) el.textContent = t; }
 
 async function cloudLoad(){
-  const url = getSyncUrl();
-  if(!url) return null;
+  const id = getBinId(), key = getApiKey();
+  if(!id || !key) return null;
   try{
-    const res = await fetch(url + '?action=get', { redirect:'follow' });
-    const txt = await res.text();
-    cloudCache = txt ? JSON.parse(txt) : {};
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${id}/latest`, {
+      headers: { 'X-Master-Key': key, 'X-Bin-Meta': 'false' }
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    cloudCache = await res.json();
+    if(typeof cloudCache !== 'object' || cloudCache === null) cloudCache = {};
+    syncMsg('已讀取雲端資料 · ' + new Date().toLocaleTimeString());
   }catch(e){
-    console.error('雲端讀取失敗，改用本機資料', e);
+    console.error('雲端讀取失敗', e);
     cloudCache = null;
+    syncMsg('雲端讀取失敗：' + e.message);
   }
   return cloudCache;
 }
+
 async function cloudSave(){
-  const url = getSyncUrl();
-  if(!url || !cloudCache) return;
+  const id = getBinId(), key = getApiKey();
+  if(!id || !key || !cloudCache) return;
   try{
-    await fetch(url, {
-      method: 'POST',
-      body: JSON.stringify(cloudCache),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': key },
+      body: JSON.stringify(cloudCache)
     });
-    cloudDirty = false;
-    const el = document.getElementById('syncStatus');
-    if(el) el.textContent = '已同步 · ' + new Date().toLocaleTimeString();
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    syncMsg('已同步 · ' + new Date().toLocaleTimeString());
   }catch(e){
     console.error('雲端寫入失敗', e);
-    const el = document.getElementById('syncStatus');
-    if(el) el.textContent = '同步失敗，資料仍存在本機';
+    syncMsg('同步失敗（資料仍存在本機）：' + e.message);
   }
 }
 
@@ -458,18 +466,18 @@ const LocalStore = {
   },
   async set(key, value){
     try{ localStorage.setItem(key, value); }catch(e){}
-    if(getSyncUrl()){
+    if(getBinId() && getApiKey()){
       if(!cloudCache) cloudCache = {};
       cloudCache[key] = value;
-      cloudDirty = true;
       clearTimeout(LocalStore._t);
-      LocalStore._t = setTimeout(cloudSave, 800);   // 800ms 內的連續修改合併成一次上傳
+      LocalStore._t = setTimeout(cloudSave, 1000);
     }
     return { key, value };
   },
   _t: null
 };
 
+const BACKUP_SEED = {"entries": [{"id": "seed1", "topic": "Technology & AI", "dim": "Development", "score": "", "zh": "因為傳訊息很快，我可以整天跟朋友保持聯絡，這讓我能花更多時間維繫感情。", "wrong": "when I have a slight thought of chatting with friends, I can simply just sending the words I want to say, and my friends would receive the message simultaneously", "correct": "Because sending a message takes only a few seconds, I can stay in touch with my friends throughout the day, allowing me to devote more time to maintaining our relationship.", "errtype": "因果推論沒有寫出來，讀者必須自己腦補中間的邏輯鏈（easy messaging → low cost → invest more time → stronger relationship）；另外「just sending」應改為「just send」，情態動詞 can 後面要接原形動詞。", "fix": "把中間的因果關係用連接詞或分詞構句明確寫出來（allowing me to / which means that），不要只丟一個事實加一個結論給讀者自己推。", "concept": "Development 維度看的是論證因果鏈是否完整外顯，事實與結論之間要有讀者不用腦補的橋樑。"}, {"id": "seed2", "topic": "Technology & AI", "dim": "Language", "score": "", "zh": "有更多共同話題會讓朋友更願意花心力在彼此的對話上。", "wrong": "making people willing to invest more energy discussing about the new topic with each other", "correct": "Having more shared topics gives friends more reasons to invest energy in their conversations.", "errtype": "discuss 本身已含「討論關於」的意思，discussing about 是贅字錯誤；making people willing to... 的因果表達也偏鬆散、不夠精準。", "fix": "discussing about → discussing；並把 making 開頭的鬆散因果句，換成更精確的名詞化主詞句構（Having more shared topics gives…）。", "concept": "Language 維度要抓贅字與固定搭配（collocation）錯誤，動詞後面該不該接介係詞要靠記憶固定用法。"}, {"id": "seed3", "topic": "Education & Work", "dim": "Language", "score": "", "zh": "這段實習經歷幫助我理解了專業團隊裡責任是怎麼分工的。", "wrong": "made me familiar with how responsibilities are divided within a professional team", "correct": "helped me understand how responsibilities are divided within a professional team", "errtype": "made me familiar with 語氣被動、不夠精確，屬於用詞精準度不足的問題。", "fix": "換成更主動、更貼近想表達語意的動詞片語 helped me understand。", "concept": "Language 維度：用詞精準度，被動描述可以換成更主動、更精確的動詞片語。"}], "essays": [{"id": "ess1787128382948", "examType": "discussion", "topic": "[081926] Could AI improve the lives of people?", "outline": "", "response": "In my opinion, I totally agree with Student B’s idea that AI has the potential to solve many of the world’s problems, which will improve the lives of people. In addition, I would add that AI is propelling lots of progress in designing novel protein structures, which has conquered multiple difficult problems. For instance, AlphaFold has made new enzyme discovery, which could help people to handle plastic pollution crisis, thereby improving the quality of our environment. Plus, DeepMind AI has predicted millions of harmful DNA mutations, which could prepare biologists for targeting the real problems accurately. Also, AI develops molecular syringe that can help cure cancer, which accelerates the process of generating of drugs to handle the illness. Overall, I believe that AI is exactly the tool that can deal with harmful problems, in a sense that biological and chemistry expertise could identify and generate proteins for the given issues, and ultimately improve our quality of lives.", "corrections": [{"dim": "Relevance", "score": "5", "zh": "", "wrong": "AI is propelling lots of progress in designing novel protein structures, which has conquered multiple difficult problems.", "correct": "In addition, I would add that AI is propelling significant progress in biomedical research, helping scientists develop biological solutions to difficult problems.", "errtype": "主題句裡面的designing novel protein structures跟二三論點裡面的mutation/cancer不夠切題，因為這個技術是identification不是design。更好的切題是直接說\"develop biological solutions to difficult problems.\"說明「解決問題」而不是「設計蛋白質」。", "fix": "更好的切題是直接說\"develop biological solutions to difficult problems.\"說明「解決問題」而不是「設計蛋白質」。", "concept": "AI 題目的重要通用句型：\n如果題目討論 AI 在醫療、生物科技、疾病、環境等領域的應用，可以用一個較大的 Reason 統整不同科技例子，而不要把 Reason 限縮在某一個技術。\nI would add that AI is propelling significant progress in biomedical research, helping scientists develop biological solutions to difficult problems."}, {"dim": "Organization", "score": "4", "zh": "", "wrong": "For instance, AlphaFold has made new enzyme discovery, which could help people to handle plastic pollution crisis, thereby improving the quality of our environment. \nPlus, DeepMind AI has predicted millions of harmful DNA mutations, which could prepare biologists for targeting the real problems accurately. \nAlso, AI develops molecular syringe that can help cure cancer, which accelerates the process of generating of drugs to handle the illness.", "correct": "1. For instance, DeepMind AI has predicted millions of harmful DNA mutations, allowing biologists to identify disease-causing mutations more accurately. \n\n2. Building on this progress, AI can analyze the structures of potential drug molecules and identify promising candidates, enabling scientists to develop targeted treatments for specific diseases.\n\n3. From there, AI has also helped scientists develop molecular syringes that can deliver drugs directly to cancer cells, making cancer treatment more precise and effective.", "errtype": "骨架正確，但是 hierarchy 還可以整理得更漂亮", "fix": "可以使用這一個Progressing關係: Prediction → Treatment → Recovery\n\nAI predicts disease risks / harmful mutations.   → [Predict]\n                                   ↓ Identify potential medical problems\nAI helps scientists discover new proteins / drugs.   → [Discovery]\n                                   ↓develop solutions to those problems\nAI helps deliver drugs directly to cancer cells.   → [Treat]\n                                   ↓ apply those solutions to patients\n\n連接詞使用: For instance → Building on this progress → From there", "concept": "PROGRESSING: 讀者讀完 Example 1 之後，Example 2 能自然地把論證往下一個方向推；Example 3 再把它推到更完整的結論。\nMethod1: individual → community → society\nMethod2: minor problem → major problem → critical problem\nMethod3: identify problem → understand problem → solve problem\nMethod4: prediction → diagnosis → treatment"}, {"dim": "Organization", "score": "4", "zh": "", "wrong": "Plus, DeepMind AI has predicted millions of harmful DNA mutations, which could prepare biologists for targeting the real problems accurately. \nAlso, AI develops molecular syringe that can help cure cancer, which accelerates the process of generating of drugs to handle the illness.", "correct": "2. In addition, DeepMind AI has predicted millions of harmful DNA mutations, allowing biologists to identify disease-causing mutations more accurately and develop more targeted treatments.\n\n3. Also, AI has helped scientists develop molecular syringes that can deliver drugs directly to cancer cells, making cancer treatment more precise and effective", "errtype": "EXAMPLE 2:\n(1) Mistakes\n🟢 DeepMind AI → predicted DNA mutations\n↓\n🟡 prepare biologists\n↓\n❌ 沒有真正說明「biologists 接下來做什麼、造成什麼結果」\n(2) Improved\n🟢 AI predicts mutations\n↓\n🟡 biologists identify disease-causing mutations\n↓\n🟡 researchers develop targeted treatments\n\nEXAMPLE 3:\n(1) Mistakes\n🟢 AI → develops molecular syringe\n↓\n🟡 syringe → cure cancer\n↓\n🟡 accelerates drug generation\n「治療」和「藥物生成」是兩條不同的邏輯線，前後兩個 result 沒有完全接在一起。\n(2) Improved\n🟢 AI → develops molecular syringes\n↓\n🟡 syringes → deliver drugs directly to cancer cells\n↓\n🟡 treatment → more precise and effective", "fix": "每一個Example都要可以做到🟢 Fact → 🟡 Process → 🟡 Result\n不要有那種不平衡的狀況出現", "concept": "🟢 Fact → 🟡 Process → 🟡 Result"}, {"dim": "Development", "score": "4", "zh": "", "wrong": "1. For instance, AlphaFold has made new enzyme discovery, which could help people to handle plastic pollution crisis, thereby improving the quality of our environment.\n\n2. DeepMind AI has predicted millions of harmful DNA mutations, which could prepare biologists for targeting the real problems accurately.\n\n3. Also, AI develops molecular syringe that can help cure cancer, which accelerates the process of generating of drugs to handle the illness.", "correct": "1. AlphaFold helps scientists discover enzymes that can break down plastic waste, reducing the amount of plastic that accumulates in the environment.\n\n2. DeepMind AI has predicted millions of harmful DNA mutations, allowing biologists to identify disease-causing mutations more accurately and develop more targeted treatments.\n\n3. AI has also helped scientists develop molecular syringes that can deliver drugs directly to cancer cells, making cancer treatment more precise and effective.", "errtype": "EXAMPLE 1:\n直接從enzyme discovery跳到handle plastic pollution。中間少了：enzyme 怎麼處理 plastic？ -> enzyme breaks down plastic waste\n\nEXAMPLE 2:\ntargeting the real problems太抽象 -> identify disease-causing mutations\n\nEXAMPLE 3:\n原本想表達：\nmolecular syringe\n→ cure cancer\n→ accelerate drug generation\n\n但真正合理的機制應該是：\nmolecular syringe\n→ deliver drugs directly to cancer cells\n→ reduce damage to healthy cells / make treatment more precise", "fix": "我的原文很常出現：\nAI does X → big problem gets better\n\n但高分 Development 更希望看到：\nAI does X → X causes Y → Y produces Z", "concept": "① 有沒有具體 Fact（綠）\n② Fact 後面有沒有 Process / Result（黃）\n③ 最後有沒有把結果推回你的 Reason / 紅泡泡\n\nAI does X → X causes Y → Y produces Z"}, {"dim": "Relevance", "score": "4", "zh": "", "wrong": "[OLD] DeepMind AI has predicted millions of harmful DNA mutations, which could prepare biologists for targeting the real problems accurately.\n[NEW] DeepMind AI has predicted millions of harmful DNA mutations, allowing biologists to identify disease-causing mutations more accurately and develop more targeted treatments.", "correct": "For instance, DeepMind’s AlphaMissense has predicted millions of potentially harmful DNA mutations, allowing biologists to identify disease-causing variants more accurately and prioritize promising targets for further research.", "errtype": "NONE，只是可以Improve", "fix": "", "concept": ""}, {"dim": "Language", "score": "3.5", "zh": "", "wrong": "AI is propelling lots of progress in designing novel protein structures", "correct": "AI is propelling significant progress in biomedical research", "errtype": "lots of progress太口語", "fix": "", "concept": ""}, {"dim": "Relevance", "score": "3.5", "zh": "", "wrong": "has conquered multiple difficult problems", "correct": "overcome significant challenges", "errtype": "不會說conquer problems", "fix": "", "concept": ""}, {"dim": "Language", "score": "3.5", "zh": "", "wrong": "AlphaFold has made new enzyme discovery", "correct": "AlphaFold has helped scientists discover new enzymes...", "errtype": "不會說make discovery", "fix": "", "concept": ""}, {"dim": "Language", "score": "3.5", "zh": "", "wrong": "help people to handle plastic pollution crisis", "correct": "help scientists address the plastic pollution crisis", "errtype": "handle 太弱", "fix": "", "concept": ""}, {"dim": "Relevance", "score": "", "zh": "", "wrong": "prepare biologists for targeting the real problems accurately", "correct": "allowing biologists to target disease-causing mutations more accurately", "errtype": "", "fix": "", "concept": ""}, {"dim": "Relevance", "score": "", "zh": "", "wrong": "AI develops molecular syringe", "correct": "AI has helped scientists develop molecular syringes", "errtype": "因為 AI 不是自己「拿手」去 develop syringe", "fix": "", "concept": ""}, {"dim": "Relevance", "score": "", "zh": "", "wrong": "drugs to handle the illness", "correct": "treat the disease\ntreat the illness\nmanage the condition", "errtype": "", "fix": "", "concept": ""}, {"dim": "Relevance", "score": "", "zh": "", "wrong": "quality of lives", "correct": "quality of life", "errtype": "quality of life 是固定詞塊", "fix": "", "concept": ""}], "revised": "In my opinion, I totally agree with Student B’s idea that AI has the potential to solve many of the world’s problems, which will improve people’s lives. In addition, I would add that AI is propelling significant progress in biomedical research, helping scientists develop biological solutions to difficult problems. For instance, DeepMind’s AlphaMissense has predicted millions of potentially harmful DNA mutations, allowing biologists to identify disease-causing variants more accurately and prioritize promising targets for further research. Building on this progress, AI has helped scientists analyze the structures of potential drug molecules and identify promising candidates, enabling them to develop targeted treatments for specific diseases. From there, AI has also helped scientists develop molecular syringes that can deliver drugs directly to cancer cells, potentially making drug delivery more precise and effective. Overall, I believe that AI is exactly the tool that can address difficult biological and medical problems, in the sense that it can help scientists identify disease risks, develop biological solutions, and apply them more precisely, ultimately improving people’s quality of life.", "languageNotes": "propel significant progress in + N\naddress a major challenge\nidentify disease-causing mutations\nscreen potential drug candidates\ndevelop targeted treatments\ndeliver drugs directly to + N\nmake treatment more precise/effective\nimprove people’s quality of life\nX is valuable in the sense that S + V..."}, {"id": "ess1787127845246", "examType": "discussion", "topic": "", "outline": "", "response": "In my opinion, I totally agree with Student B’s idea that AI has the potential to solve many of the world’s problems, which will improve the lives of people. In addition, I would add that AI is propelling lots of progress in designing novel protein structures, which has conquered multiple difficult problems. For instance, AlphaFold has made new enzyme discovery, which could help people to handle plastic pollution crisis, thereby improving the quality of our environment. Plus, DeepMind AI has predicted millions of harmful DNA mutations, which could prepare biologists for targeting the real problems accurately. Also, AI develops molecular syringe that can help cure cancer, which accelerates the process of generating of drugs to handle the illness. Overall, I believe that AI is exactly the tool that can deal with harmful problems, in a sense that biological and chemistry expertise could identify and generate proteins for the given issues, and ultimately improve our quality of lives.", "corrections": []}], "patterns": [{"id": "p0", "topic": "Education & Work", "pattern": "Social mobility", "example": ""}, {"id": "p1", "topic": "Education & Work", "pattern": "Increase visibility", "example": ""}, {"id": "p2", "topic": "Education & Work", "pattern": "Build up reputation", "example": ""}, {"id": "p3", "topic": "Education & Work", "pattern": "Become knowledgeable person", "example": ""}, {"id": "p4", "topic": "Education & Work", "pattern": "Gain professional skills", "example": ""}, {"id": "p5", "topic": "Education & Work", "pattern": "Be an authoritative figure", "example": ""}, {"id": "p6", "topic": "Education & Work", "pattern": "Through years of hard work/dedication, …", "example": "I believe that education can truly help a person to have expertise"}, {"id": "p7", "topic": "Education & Work", "pattern": "", "example": "…, which has earned him considerable respect from his coworkers and managers"}, {"id": "p8", "topic": "Education & Work", "pattern": "", "example": "I believe that education can truly empower a person to gain others' trust in his expertise."}, {"id": "p9", "topic": "Education & Work", "pattern": "Obatin social recognition", "example": ""}, {"id": "p10", "topic": "Education & Work", "pattern": "Gain significant admiration from his colleagues and supervisors", "example": ""}, {"id": "p11", "topic": "Education & Work", "pattern": "Understand how workplaces operate", "example": ""}, {"id": "p12", "topic": "Education & Work", "pattern": "How academic knowledge is used in professional settings", "example": ""}, {"id": "p13", "topic": "Education & Work", "pattern": "", "example": "These experiences gave me a clearer picture of how responsibilities are divided within a professional team and made me more confident about working in a real workplace"}, {"id": "p14", "topic": "Education & Work", "pattern": "Understand how professional teams collaborate", "example": ""}, {"id": "p15", "topic": "Education & Work", "pattern": "", "example": "Which showed me how responsibilities are divided within a professional team"}, {"id": "p16", "topic": "Education & Work", "pattern": "Made me familiar with", "example": "helped me understand"}, {"id": "p17", "topic": "Technology & AI", "pattern": "I am eager to learn more about AI.", "example": "'eager' is adjective, not verb"}, {"id": "p18", "topic": "Technology & AI", "pattern": "", "example": "During the internship, applying theories learned in school to real-world problems was compulsory for us. As a result, I became more familiar with the practical challenges of artificial intelligence."}, {"id": "p19", "topic": "Health & Society", "pattern": "Eye strain / back pain / step away from screen", "example": ""}, {"id": "p20", "topic": "Health & Society", "pattern": "Returning to their responsibilities", "example": ""}, {"id": "p21", "topic": "Health & Society", "pattern": "Feel less physically and mentally exhausted", "example": ""}, {"id": "p22", "topic": "Health & Society", "pattern": "Promote healthier habits", "example": ""}, {"id": "p23", "topic": "Health & Society", "pattern": "Provide convenient places to exercise", "example": ""}, {"id": "p24", "topic": "Health & Society", "pattern": "Take breaks from daily routine", "example": ""}, {"id": "p25", "topic": "Health & Society", "pattern": "Working on computers", "example": ""}, {"id": "p26", "topic": "Health & Society", "pattern": "Step away from computers/daily routine", "example": ""}, {"id": "p27", "topic": "Environment & City Planning", "pattern": "Investing in public parks", "example": ""}, {"id": "p28", "topic": "Environment & City Planning", "pattern": "", "example": "Parks can support residents; physical and mental health"}], "templates": [{"id": "t1787136351210rj6p", "pattern": "screen out potential … candidates (把不想要的東西過濾／阻擋掉)", "examples": [{"id": "ex1787136527693g4dn", "text": "Planting more trees can help screen out harmful pollutants from the air, improving the quality of the urban environment.", "topic": "Environment & City Planning"}, {"id": "ex1787136546249wyks", "text": "Planting trees along major roads can screen out some of the pollutants produced by heavy traffic, thereby improving air quality in densely populated areas.", "topic": "Environment & City Planning"}, {"id": "ex1787136817847yyl2", "text": "Online platforms can use AI to screen out inappropriate content and create a safer environment for users.", "topic": "Technology & AI"}, {"id": "ex17871368613087k0t", "text": "screen out harmful pollutants/harmful chemical/contaminants/irrelevant information/inappropriate content", "topic": "Environment & City Planning"}], "phrases": "screen out +  harmful pollutants/harmful chemical/contaminants/irrelevant information/inappropriate content"}, {"id": "t17871363384091a9t", "pattern": "X is valuable in the sense that S + V... (X 很有價值，因為／就某種意義而言，X 可以……)", "examples": [{"id": "ex1787137001724i105", "text": "Overall, I believe that investing in public transportation is a worthwhile investment, in the sense that it can reduce reliance on private cars, alleviate traffic congestion, and ultimately create a cleaner and more livable urban environment.", "topic": "Environment & City Planning"}, {"id": "ex1787137028838ruow", "text": "Overall, I believe that AI is exactly the kind of tool that can help solve difficult biological and medical problems, in the sense that it can help scientists identify disease risks, develop targeted solutions, and apply them more precisely, ultimately improving people’s quality of life.", "topic": "Technology & AI"}, {"id": "ex17871370413406caa", "text": "Overall, I believe that universities should expand online education, in the sense that it can make learning more accessible, provide students with greater flexibility, and allow more people to pursue higher education.", "topic": "Education & Work"}, {"id": "ex1787137063015k5c9", "text": "Overall, I believe that governments should encourage regular exercise, in the sense that it can reduce the risk of chronic diseases, improve mental well-being, and lower long-term healthcare costs.", "topic": "Health & Society"}], "phrases": ""}, {"id": "t1787136201172jhe7", "pattern": "identify disease-causing mutations", "examples": [{"id": "ex1787136240315ww9m", "text": "DeepMind's AlphaMissense has predicted millions of potentially harmful DNA mutations, allowing biologists to identify disease-causing variants more accurately.", "topic": "Technology & AI"}], "phrases": ""}, {"id": "t1787136199508smr8", "pattern": "", "examples": [], "phrases": ""}, {"id": "t1787135970248fhp2", "pattern": "propel significant progress in + N", "examples": [{"id": "ex17871360383938uqf", "text": "I would add that AI is propelling significant progress in biomedical research", "topic": "Technology & AI"}], "phrases": ""}, {"id": "t178713596879212dr", "pattern": "address a major challenge", "examples": [{"id": "ex1787136152715ds2b", "text": "", "topic": "Technology & AI"}, {"id": "ex1787136154059lelq", "text": "Investing in renewable energy can help cities address a major challenge in reducing carbon emissions.", "topic": "Environment & City Planning"}], "phrases": ""}, {"id": "t17870574522184mar", "pattern": "Through years of hard work/dedication, ...", "examples": [{"id": "ex17870574610679316", "text": "Through years of hard work and dedication, she has built a solid reputation as a leading voice in urban sustainability policy.", "topic": "Technology & AI"}], "phrases": ""}, {"id": "t0", "pattern": "Prepare … for …", "examples": [{"id": "t0x0", "text": "Prepare students for their future careers", "topic": "Education & Work"}, {"id": "t0x1", "text": "Prepare workers for the automation of routine tasks", "topic": "Technology & AI"}, {"id": "t0x2", "text": "Prepare communities for a public health crisis", "topic": "Health & Society"}, {"id": "t0x3", "text": "Prepare cities for extreme weather events", "topic": "Environment & City Planning"}, {"id": "ex1787057149281j4j8", "text": "Prepare engineers for the ethical challenges of deploying large language models", "topic": "Education & Work"}, {"id": "ex1787057188046a0dn", "text": "Prepare patients for the side effects of long-term medication", "topic": "Health & Society"}], "phrases": ""}, {"id": "t1", "pattern": "Ultimately improve the quality of life", "examples": [{"id": "t1x0", "text": "Investing in public parks can ultimately improve the quality of life for residents", "topic": "Environment & City Planning"}, {"id": "t1x1", "text": "Taking short breaks from daily routine can ultimately improve the quality of life for office workers", "topic": "Health & Society"}], "phrases": ""}, {"id": "t2", "pattern": "Resulting in … / thereby …ing", "examples": [{"id": "t2x0", "text": "thereby improving residents' quality of life", "topic": "Health & Society"}], "phrases": ""}, {"id": "t3", "pattern": "Better prepare themselves for …", "examples": [{"id": "t3x0", "text": "Better prepare themselves for future careers", "topic": "Education & Work"}], "phrases": ""}, {"id": "t4", "pattern": "Trigger wandering minds / Drift away and miss important details", "examples": [], "phrases": ""}, {"id": "t5", "pattern": "Value one's opinions", "examples": [], "phrases": ""}]};
 const STORAGE_KEY = 'writing-entries';
 const ESSAY_KEY = 'writing-essays';
 let entries = [];
@@ -587,18 +595,20 @@ async function loadAll(){
     const res = await LocalStore.get(STORAGE_KEY);
     entries = res && res.value ? JSON.parse(res.value) : [];
   }catch(e){ entries = []; }
+  if(!entries || entries.length===0) entries = JSON.parse(JSON.stringify(BACKUP_SEED.entries));
   try{
     const res2 = await LocalStore.get(ESSAY_KEY);
     essays = res2 && res2.value ? JSON.parse(res2.value) : [];
   }catch(e){ essays = []; }
+  if(!essays || essays.length===0) essays = JSON.parse(JSON.stringify(BACKUP_SEED.essays));
   try{
     const res3 = await LocalStore.get(PATTERN_KEY);
     const saved = res3 && res3.value ? JSON.parse(res3.value) : null;
     patterns = saved && saved.patterns ? saved.patterns : null;
     templates = saved && saved.templates ? saved.templates : null;
   }catch(e){ patterns = null; templates = null; }
-  if(!patterns){ patterns = seedPatterns.map((s,i)=>({id:'p'+i, topic:s.topic, pattern:s.p, example:s.e})); }
-  if(!templates){ templates = seedTemplates.map((t,i)=>({id:'t'+i, pattern:t.p, phrases:'', examples:t.examples.map((ex,j)=>({id:'t'+i+'x'+j, text:ex.text, topic:ex.topic}))})); }
+  if(!patterns || patterns.length===0){ patterns = JSON.parse(JSON.stringify(BACKUP_SEED.patterns)); }
+  if(!templates || templates.length===0){ templates = JSON.parse(JSON.stringify(BACKUP_SEED.templates)); }
   templates.forEach(t=>{ if(t.phrases === undefined) t.phrases = ''; });
   await persistPatterns();
   try{
@@ -1802,24 +1812,23 @@ document.getElementById('importBtn').addEventListener('click', async ()=>{
   document.getElementById('importArea').value = '';
 });
 
-document.getElementById('syncUrlInput').value = getSyncUrl();
+document.getElementById('binIdInput').value = getBinId();
+document.getElementById('apiKeyInput').value = getApiKey();
 document.getElementById('saveSyncUrl').addEventListener('click', async ()=>{
-  const url = document.getElementById('syncUrlInput').value.trim();
-  setSyncUrl(url);
-  const status = document.getElementById('syncStatus');
-  if(!url){ status.textContent = '已改為只存本機'; return; }
-  status.textContent = '連線中…';
+  const id = document.getElementById('binIdInput').value.trim();
+  const key = document.getElementById('apiKeyInput').value.trim();
+  setBinCreds(id, key);
+  if(!id || !key){ syncMsg('已改為只存本機'); return; }
+  syncMsg('連線中…');
   await cloudLoad();
-  if(cloudCache === null){ status.textContent = '連不上，請檢查網址'; return; }
-  // 把目前本機資料推上雲端
-  cloudCache = cloudCache || {};
+  if(cloudCache === null) return;   // cloudLoad 已顯示錯誤訊息
+  // 把本機現有資料補上雲端（雲端沒有的才補）
   for(const k of [STORAGE_KEY, ESSAY_KEY, PATTERN_KEY, TOPICS_KEY]){
     const v = localStorage.getItem(k);
     if(v !== null && !cloudCache[k]) cloudCache[k] = v;
   }
   await cloudSave();
   await loadAll();
-  status.textContent = '同步完成 · ' + new Date().toLocaleTimeString();
 });
 
 loadAll();
