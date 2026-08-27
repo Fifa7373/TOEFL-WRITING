@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>口說句庫 · 主動回憶練習</title>
+<style>
+  :root {
+    --ink: #0f1720;
+    --panel: #17222c;
+    --panel-2: #1e2b37;
+    --line: rgba(216, 227, 232, 0.10);
+    --line-strong: rgba(216, 227, 232, 0.20);
+    --paper: #e8ecec;
+    --paper-dim: #9fb0b8;
+    --amber: #d9a441;
+    --amber-dim: rgba(217, 164, 65, 0.16);
+    --teal: #5ea8a0;
+    --teal-dim: rgba(94, 168, 160, 0.16);
+    --bad: #c96a5a;
+    --good: #6fae7c;
+    --radius: 10px;
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    --serif: Georgia, 'Noto Serif TC', 'PMingLiU', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--ink); color: var(--paper); font-family: var(--sans); -webkit-tap-highlight-color: transparent; }
+  body { min-height: 100vh; }
+  .bg-grid {
+    position: fixed; inset: 0;
+    background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 28px 28px; opacity: 0.35; pointer-events: none; z-index: 0;
+  }
+  .app { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; padding: 18px 16px 110px; }
+
+  header.top { display: flex; align-items: flex-start; justify-content: space-between; padding: 6px 2px 18px; border-bottom: 1px solid var(--line-strong); margin-bottom: 18px; gap: 8px; }
+  .backup-controls { display: flex; gap: 6px; flex-shrink: 0; }
+  .backup-btn { font-size: 11px; padding: 7px 10px; white-space: nowrap; }
+  header.top .title { font-family: var(--mono); font-size: 13px; letter-spacing: 0.12em; color: var(--paper-dim); text-transform: uppercase; }
+  header.top .sub { font-family: var(--serif); font-size: 19px; color: var(--paper); margin-top: 2px; }
+
+  nav.tabs { position: fixed; bottom: 0; left: 0; right: 0; display: flex; z-index: 5; background: rgba(15, 23, 32, 0.94); backdrop-filter: blur(6px); border-top: 1px solid var(--line-strong); }
+  nav.tabs button { flex: 1; padding: 12px 2px 10px; background: none; border: none; color: var(--paper-dim); font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; border-top: 2px solid transparent; }
+  nav.tabs button.active { color: var(--amber); border-top-color: var(--amber); }
+
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadein 0.25s ease; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(4px);} to { opacity:1; transform: translateY(0);} }
+
+  .card { background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+  .label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--teal); text-transform: uppercase; margin-bottom: 8px; }
+
+  select, textarea, input[type=text], input[type=password] { width: 100%; background: var(--panel-2); border: 1px solid var(--line-strong); color: var(--paper); border-radius: 8px; padding: 10px 12px; font-family: var(--sans); font-size: 15px; }
+  textarea { resize: vertical; min-height: 60px; }
+
+  button.btn { font-family: var(--sans); font-weight: 600; font-size: 14px; border-radius: 8px; padding: 12px 16px; border: 1px solid var(--line-strong); background: var(--panel-2); color: var(--paper); cursor: pointer; }
+  button.btn.primary { background: var(--amber); color: #26190a; border-color: var(--amber); }
+  button.btn.ghost { background: transparent; }
+  button.btn.danger { color: var(--bad); }
+  button.btn:active { transform: scale(0.98); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > * { flex: 1; }
+  .row.tight > * { flex: none; }
+
+  .draw-stage { text-align: center; padding: 30px 10px 10px; }
+  .sample-tag { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; color: var(--paper-dim); border: 1px solid var(--line-strong); padding: 3px 10px; border-radius: 20px; margin-bottom: 18px; }
+  .topic-name { font-family: var(--serif); font-size: 30px; color: var(--paper); padding: 0 8px; line-height: 1.3; }
+  .draw-hint { color: var(--paper-dim); font-size: 13px; margin-top: 14px; }
+
+  .sentence-item { display: flex; align-items: flex-start; gap: 12px; padding: 13px 4px; border-bottom: 1px solid var(--line); }
+  .sentence-item:last-child { border-bottom: none; }
+  .chk { flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px; border: 1.5px solid var(--line-strong); display: flex; align-items: center; justify-content: center; cursor: pointer; margin-top: 2px; font-size: 15px; color: transparent; }
+  .chk.on { background: var(--good); border-color: var(--good); color: #0f1720; }
+  .formula-tag { font-family: var(--mono); font-size: 11px; color: var(--amber); background: var(--amber-dim); display: inline-block; padding: 2px 8px; border-radius: 5px; margin-bottom: 5px; }
+  .sentence-text { font-family: var(--serif); font-size: 15.5px; line-height: 1.5; color: var(--paper); }
+  .sentence-note { font-family: var(--mono); font-size: 11px; color: var(--paper-dim); margin-top: 3px; display:flex; gap:8px; align-items:center; }
+
+  .lvl-badge { font-family: var(--mono); font-size: 10.5px; padding: 1px 7px; border-radius: 10px; border: 1px solid; white-space:nowrap; }
+
+  .summary-box { text-align: center; padding: 22px 10px; }
+  .summary-num { font-family: var(--mono); font-size: 42px; color: var(--amber); }
+  .summary-sub { color: var(--paper-dim); font-size: 13px; margin-top: 4px; }
+
+  .cat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .cat-name { font-family: var(--serif); font-size: 17px; }
+  .cat-count { font-family: var(--mono); font-size: 11px; color: var(--paper-dim); }
+  .sent-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .sent-row:last-child { border-bottom: none; }
+  .sent-row .body { flex: 1; }
+  .sent-row .txt { font-size: 14.5px; font-family: var(--serif); outline: none; }
+  .sent-row .meta { display:flex; gap:8px; align-items:center; margin-top:4px; }
+  .acc { font-family: var(--mono); font-size: 11px; color: var(--paper-dim); white-space: nowrap; }
+  .del-x { background: none; border: none; color: var(--bad); font-size: 16px; cursor: pointer; padding: 0 4px; flex-shrink:0; }
+
+  .stat-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .stat-row:last-child { border-bottom: none; }
+  .bar-track { flex: 1; height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--teal); }
+  .stat-label { font-size: 13px; width: 38%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stat-pct { font-family: var(--mono); font-size: 12px; color: var(--paper-dim); width: 42px; text-align: right; }
+
+  .level-dist { display:flex; gap:6px; align-items:flex-end; height:64px; padding-top:10px; }
+  .level-dist .bar { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .level-dist .bar .col { width:100%; border-radius: 4px 4px 0 0; background: var(--teal); min-height:3px; }
+  .level-dist .bar .lv-label { font-family: var(--mono); font-size: 10px; color: var(--paper-dim); }
+
+  .log-item { display:flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .log-item:last-child { border-bottom:none; }
+  .log-item .d { color: var(--paper-dim); font-family: var(--mono); font-size: 11px; }
+
+  .story-card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+
+  .univ-template-card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+  .univ-formula-row { display:flex; justify-content: space-between; align-items:center; gap:8px; margin-bottom: 10px; }
+  .univ-formula { font-family: var(--mono); font-size: 14px; color: var(--amber); outline: none; flex:1; }
+  .univ-example-row { display:flex; align-items:flex-start; gap:8px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .univ-group-label { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line-strong); }
+  .univ-group-label:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+  .univ-example-row .ex-text { flex:1; font-family: var(--serif); font-size: 14px; outline:none; }
+  .univ-example-row select { font-size: 12px; padding: 5px 6px; width: auto; flex: 0 0 auto; }
+  .univ-add-example { display:flex; gap:6px; margin-top:10px; }
+  .univ-add-example input { flex:1; font-size: 13px; padding: 7px 10px; }
+  .univ-add-example select { flex: 0 0 auto; font-size: 12px; padding: 7px 6px; width: auto; }
+  .story-title-row { display:flex; justify-content: space-between; align-items:center; margin-bottom: 8px; gap: 8px;}
+  .story-title { font-family: var(--serif); font-size: 16px; outline:none; flex:1; }
+  .story-field-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; color: var(--paper-dim); text-transform: uppercase; margin-top: 10px; margin-bottom: 3px; }
+  .story-field { font-size: 14px; line-height: 1.55; outline: none; min-height: 1.4em; }
+  .angle-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .angle-tag { font-family: var(--mono); font-size: 10.5px; background: var(--teal-dim); color: var(--teal); padding: 2px 9px; border-radius: 10px; }
+  .filter-tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom: 12px; }
+  .filter-tag { font-family: var(--mono); font-size: 11px; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--panel-2); color: var(--paper-dim); cursor:pointer; }
+  .filter-tag.active { background: var(--amber-dim); color: var(--amber); border-color: var(--amber); }
+
+  .story-view-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
+  .view-btn { font-family: var(--mono); font-size: 10.5px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line-strong); background: transparent; color: var(--paper-dim); cursor: pointer; }
+  .view-btn.active { background: var(--teal-dim); color: var(--teal); border-color: var(--teal); }
+  .original-text { font-size: 14px; line-height: 1.7; font-family: var(--serif); white-space: pre-wrap; outline: none; }
+  .original-num { color: var(--amber); font-family: var(--mono); font-size: 11px; margin-right: 6px; }
+
+  .mock-card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+  .mock-head { display:flex; justify-content: space-between; align-items:center; gap:8px; margin-bottom: 6px; }
+  .mock-topic { font-family: var(--serif); font-size: 16px; outline:none; flex:1; }
+  .mock-date { font-family: var(--mono); font-size: 10.5px; color: var(--paper-dim); white-space:nowrap; }
+  .mock-field-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; color: var(--paper-dim); text-transform: uppercase; margin-top: 10px; margin-bottom: 3px; }
+  .mock-field { font-size: 14px; line-height: 1.6; outline: none; min-height: 1.4em; white-space: pre-wrap; }
+  .mock-field.response { color: var(--paper); }
+  .mock-field.mistakes { color: #e0876f; }
+  .mock-field.adjustment { color: var(--amber); }
+  .mock-field.sample { color: var(--good); }
+
+  .mode-toggle { display: flex; gap: 8px; margin-bottom: 14px; }
+  .mode-btn { flex: 1; font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em; padding: 10px 6px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--paper-dim); cursor: pointer; }
+  .mode-btn.active { background: var(--amber-dim); color: var(--amber); border-color: var(--amber); }
+
+  .lr-session-card { background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+  .lr-session-head { display:flex; justify-content: space-between; align-items:center; gap:8px; margin-bottom: 12px; }
+  .lr-label { font-family: var(--mono); font-size: 15px; color: var(--amber); outline: none; letter-spacing: 0.05em; }
+  .lr-sentence-block { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .lr-sentence-num { font-family: var(--mono); font-size: 11px; color: var(--paper-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; display:flex; justify-content:space-between; }
+  .lr-field-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; color: var(--paper-dim); text-transform: uppercase; margin-top: 8px; margin-bottom: 3px; }
+  .lr-field { font-size: 14px; line-height: 1.55; outline: none; min-height: 1.3em; font-family: var(--serif); }
+  .lr-field.sentence-text { color: var(--paper); }
+  .lr-field.response-text { color: #cfd8dc; }
+  .lr-problem-list { list-style:none; padding:0; margin: 4px 0 0; }
+  .lr-problem-list li { display:flex; align-items:flex-start; gap:6px; padding: 3px 0; font-size: 13.5px; color: var(--bad); }
+  .lr-problem-list li .txt { flex:1; outline:none; }
+  .lr-problem-list li .del-p { background:none; border:none; color: var(--bad); cursor:pointer; font-size: 13px; opacity: 0.7; }
+  .lr-add-problem { display:flex; gap:6px; margin-top:6px; }
+  .lr-add-problem input { font-size: 13px; padding: 6px 10px; }
+  .lr-add-problem button { flex: 0 0 auto; padding: 6px 10px; font-size: 12px; }
+
+  .story-row { display: flex; align-items: center; gap: 10px; padding: 13px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .story-row:last-child { border-bottom: none; }
+  .story-row:active { background: rgba(217,164,65,0.06); }
+  .story-row .name { flex: 1; font-family: var(--serif); font-size: 15.5px; }
+  .story-row .chevron { color: var(--paper-dim); font-family: var(--mono); }
+  .story-row .angle-tags { margin-top: 4px; }
+
+  .detail-back { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .detail-back button { font-family: var(--mono); font-size: 12px; background: none; border: none; color: var(--teal); cursor: pointer; padding: 6px 0; }
+  .original-list { list-style: none; margin: 0; padding: 0; }
+  .original-list li { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-family: var(--serif); font-size: 15px; line-height: 1.55; }
+  .original-list li:last-child { border-bottom: none; }
+  .original-list li .bullet { color: var(--amber); font-family: var(--mono); font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+  .original-list li .txt { flex: 1; outline: none; }
+
+  .empty { text-align: center; color: var(--paper-dim); padding: 30px 10px; font-size: 14px; }
+  .muted { color: var(--paper-dim); font-size: 12.5px; line-height: 1.6; }
+  h3.section-h { font-family: var(--serif); font-size: 16px; margin: 22px 0 10px; color: var(--paper); }
+  [contenteditable]:focus { background: rgba(217,164,65,0.08); border-radius: 4px; }
+
+  .sync-btns { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .sync-btns button { flex:1 1 auto; font-size:13px; padding:10px 12px; }
+  #syncStatus { font-family: var(--mono); font-size: 11.5px; color: var(--paper-dim); margin-top:8px; display:block; }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="app">
+
+  <header class="top">
+    <div>
+      <div class="title">Speaking Recall Bench</div>
+      <div class="sub">口說句庫 · 主動回憶練習</div>
+    </div>
+    <div class="backup-controls">
+      <button class="btn ghost backup-btn" id="btn-export-backup" title="匯出備份">⇩ 備份</button>
+      <button class="btn ghost backup-btn" id="btn-import-backup" title="匯入備份">⇧ 還原</button>
+      <input type="file" id="import-file-input" accept="application/json" style="display:none;">
+    </div>
+  </header>
+
+  <!-- ============ PRACTICE TAB ============ -->
+  <section class="panel active" id="panel-practice">
+
+    <div class="card" id="draw-controls">
+      <div class="label">選擇主題來源</div>
+      <div class="row">
+        <select id="cat-select"><option value="">— 隨機抽題 —</option></select>
+        <button class="btn primary" id="btn-draw">抽題 / 開始回想</button>
+      </div>
+    </div>
+
+    <div class="card" id="draw-card" style="display:none;">
+      <div class="draw-stage">
+        <div class="sample-tag" id="sample-tag">SAMPLE</div>
+        <div class="topic-name" id="topic-name">—</div>
+        <div class="draw-hint">先靠自己回想這個主題可以用的句型／故事，想完再翻開句庫</div>
+      </div>
+      <div class="row" style="margin-top:18px;">
+        <button class="btn ghost" id="btn-cancel-draw">取消</button>
+        <button class="btn primary" id="btn-reveal">翻開句庫，開始核對</button>
+      </div>
+    </div>
+
+    <div class="card" id="reveal-card" style="display:none;">
+      <div class="label" id="reveal-label">句庫核對</div>
+      <div id="sentence-list"></div>
+    </div>
+
+    <div class="card" id="story-bonus-card" style="display:none;">
+      <div class="label">相關 Story Bank（順便回想）</div>
+      <div id="story-bonus-list"></div>
+    </div>
+
+    <div class="row" id="finish-row" style="display:none; margin-bottom: 14px;">
+      <button class="btn ghost" id="btn-back-draw">重新抽</button>
+      <button class="btn primary" id="btn-finish">完成，儲存本次結果</button>
+    </div>
+
+    <div class="card" id="summary-card" style="display:none;">
+      <div class="summary-box">
+        <div class="summary-num" id="summary-num">0/0</div>
+        <div class="summary-sub">本次想起的句子</div>
+      </div>
+      <div class="row"><button class="btn primary" id="btn-again">再抽一題</button></div>
+    </div>
+
+  </section>
+
+  <!-- ============ BANK TAB ============ -->
+  <section class="panel" id="panel-bank">
+
+    <div class="card">
+      <div class="label">新增主題分類</div>
+      <div class="row">
+        <input type="text" id="new-cat-name" placeholder="例如：Public Policy / Environment">
+        <button class="btn primary" id="btn-add-cat">新增</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="label">批次匯入（從 Word 貼上）</div>
+      <div class="muted" style="margin-bottom:8px;">
+        每行一句，格式：<b>分類 :: 句子</b>，或加上公式：<b>分類 :: 公式 :: 句子</b><br>
+        一句要放進多個分類，用 <b>+</b> 分隔分類名稱，例如：<b>The Thinking Game + Work &amp; Career :: 句子</b>
+      </div>
+      <textarea id="bulk-input" placeholder="The Thinking Game + Morals & Values :: 句子內容"></textarea>
+      <div class="row" style="margin-top:10px;"><button class="btn primary" id="btn-bulk-import">批次匯入</button></div>
+    </div>
+
+    <div class="card">
+      <div class="label">通用句子模板（Universal Sentences）</div>
+      <div class="muted" style="margin-bottom:10px;">不屬於特定主題、到處都能用的句型。一個模板底下可以放很多個例句，每個例句可以標記它比較貼近哪個主題面向。</div>
+      <div class="row" style="margin-bottom:10px;">
+        <input type="text" id="new-univ-formula" placeholder="新增模板，例如：Prepare ___ for ___">
+        <button class="btn primary" id="btn-add-univ" style="flex:0 0 auto;">新增模板</button>
+      </div>
+      <div id="univ-template-list"></div>
+    </div>
+
+    <h3 class="section-h">目前句庫</h3>
+    <div id="bank-list"></div>
+
+  </section>
+
+  <!-- ============ STORY BANK TAB ============ -->
+  <section class="panel" id="panel-story">
+
+    <div id="story-list-view">
+      <div class="card">
+        <div class="label">新增故事</div>
+        <div class="row" style="margin-bottom:8px;">
+          <input type="text" id="new-story-title" placeholder="標題／核心事件（一句話）">
+        </div>
+        <div class="row" style="margin-bottom:8px;">
+          <textarea id="new-story-details" placeholder="可替換的細節槽（哪些名詞可以換成別的東西）"></textarea>
+        </div>
+        <div class="row" style="margin-bottom:8px;">
+          <textarea id="new-story-turn" placeholder="情緒／轉折點（卡住→怎麼突破）"></textarea>
+        </div>
+        <div class="row" style="margin-bottom:8px;">
+          <input type="text" id="new-story-angles" placeholder="適用角度／題型，逗號分隔，例如：挫折經驗, 學習方法, 團隊合作">
+        </div>
+        <div class="row" style="margin-bottom:10px;">
+          <textarea id="new-story-original" placeholder="原文句子（跟 Word 裡一模一樣，一行一句）"></textarea>
+        </div>
+        <button class="btn primary" id="btn-add-story" style="width:100%;">新增故事</button>
+      </div>
+
+      <div class="card" id="story-filter-card" style="display:none;">
+        <div class="label">依適用角度篩選</div>
+        <div class="filter-tags" id="story-filter-tags"></div>
+      </div>
+
+      <h3 class="section-h">我的 Story Bank</h3>
+      <div id="story-list"></div>
+    </div>
+
+    <div id="story-detail-view" style="display:none;"></div>
+
+  </section>
+
+  <!-- ============ MOCK TEST TAB ============ -->
+  <section class="panel" id="panel-mocktest">
+
+    <div class="mode-toggle">
+      <button class="mode-btn active" data-mode="interview">Take an Interview</button>
+      <button class="mode-btn" data-mode="listenrepeat">Listen and Repeat</button>
+    </div>
+
+    <div id="mock-interview-view">
+      <div class="card">
+        <div class="label">新增一次測驗紀錄</div>
+        <div class="row" style="margin-bottom:8px;">
+          <input type="text" id="new-mock-topic" placeholder="主題／題目（例如：Public Policy - 政府補助藝術）">
+        </div>
+        <div class="row" style="margin-bottom:8px;">
+          <textarea id="new-mock-response" placeholder="我的 Response（當時實際講出來的內容）"></textarea>
+        </div>
+        <div class="row" style="margin-bottom:8px;">
+          <textarea id="new-mock-mistakes" placeholder="犯錯的地方／原因分析"></textarea>
+        </div>
+        <div class="row" style="margin-bottom:8px;">
+          <textarea id="new-mock-adjustment" placeholder="訂正以及調整"></textarea>
+        </div>
+        <div class="row" style="margin-bottom:10px;">
+          <textarea id="new-mock-sample" placeholder="Sample（滿分回答）"></textarea>
+        </div>
+        <button class="btn primary" id="btn-add-mock" style="width:100%;">新增紀錄</button>
+      </div>
+
+      <h3 class="section-h">測驗紀錄</h3>
+      <div id="mock-list"></div>
+    </div>
+
+    <div id="mock-listenrepeat-view" style="display:none;">
+      <div class="card">
+        <div class="row">
+          <input type="text" id="new-lr-label" placeholder="場次名稱（例如：0818）">
+          <button class="btn primary" id="btn-add-lr-session" style="flex:0 0 auto;">新增場次</button>
+        </div>
+      </div>
+      <div id="lr-session-list"></div>
+    </div>
+
+  </section>
+
+  <!-- ============ STATS TAB ============ -->
+  <section class="panel" id="panel-stats">
+    <div class="card">
+      <div class="label">整體回想率（依分類）</div>
+      <div id="stats-by-cat"><div class="empty">還沒有練習紀錄</div></div>
+    </div>
+    <div class="card">
+      <div class="label">句子熟練度分布</div>
+      <div id="level-dist-sent"><div class="empty">句庫是空的</div></div>
+    </div>
+    <div class="card">
+      <div class="label">最弱的句子（優先複習）</div>
+      <div id="weak-sentences"><div class="empty">還沒有練習紀錄</div></div>
+    </div>
+    <div class="card">
+      <div class="label">最近測驗紀錄</div>
+      <div id="log-history"><div class="empty">尚無資料</div></div>
+    </div>
+    <div class="card">
+      <div class="label">累計總覽</div>
+      <div id="log-summary" class="muted">尚無資料</div>
+    </div>
+  </section>
+
+  <!-- ============ SYNC TAB ============ -->
+  <section class="panel" id="panel-sync">
+    <div class="card">
+      <div class="label">跨裝置同步（JSONBin.io）</div>
+      <div class="muted" style="margin-bottom:10px;">
+        到 jsonbin.io 註冊 → 建立一個 Private Bin（內容填 <b>{"init": true}</b>）→ 把 Bin ID 和 X-Master-Key 填在下面。<br>
+        電腦和手機填同一組。編輯時只存本機，要換裝置前按「上傳到雲端」，到另一台按「從雲端下載」。
+      </div>
+      <div style="margin-bottom:8px;">
+        <div class="mock-field-label">Bin ID</div>
+        <input type="text" id="binIdInput" placeholder="例如 68a1f2c3ad19ca34f8b7d2e1">
+      </div>
+      <div style="margin-bottom:8px;">
+        <div class="mock-field-label">X-Master-Key</div>
+        <input type="password" id="apiKeyInput" placeholder="$2a$10$...">
+      </div>
+      <div class="sync-btns">
+        <button class="btn ghost" id="saveSyncKeys">儲存金鑰</button>
+        <button class="btn primary" id="pushCloud">↑ 上傳到雲端</button>
+        <button class="btn primary" id="pullCloud">↓ 從雲端下載</button>
+      </div>
+      <span id="syncStatus"></span>
+    </div>
+
+    <div class="card">
+      <div class="label">本機備份檔</div>
+      <div class="muted" style="margin-bottom:10px;">最保險的一層：不依賴瀏覽器、不依賴雲端。建議每練完一次就下載一份。</div>
+      <div class="sync-btns">
+        <button class="btn ghost" id="btn-export-backup-2">⇩ 下載備份檔</button>
+        <button class="btn ghost" id="btn-import-backup-2">⇧ 還原備份檔</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="practice">練習</button>
+  <button class="tab-btn" data-tab="bank">句庫管理</button>
+  <button class="tab-btn" data-tab="story">Story</button>
+  <button class="tab-btn" data-tab="mocktest">Mock</button>
+  <button class="tab-btn" data-tab="stats">統計</button>
+  <button class="tab-btn" data-tab="sync">同步</button>
+</nav>
+
+<script>
+(function(){
+  'use strict';
+
+  const BACKUP_SEED = {"bank": {"categories": [{"id": "cat_seed_Education", "name": "Education & Learning"}, {"id": "cat_seed_Work", "name": "Work & Career"}, {"id": "cat_seed_Technology", "name": "Technology & Daily Life"}, {"id": "cat_seed_Social", "name": "Social Life & Relationships"}, {"id": "cat_seed_Personal", "name": "Personal Choices & Lifestyle"}, {"id": "cat_seed_Sports", "name": "Sports & Health"}, {"id": "cat_seed_Morals", "name": "Morals & Values"}, {"id": "cat_seed_Environment", "name": "Environment & Social Issues"}, {"id": "cat_seed_ThinkingGame", "name": "The Thinking Game"}, {"id": "cat_seed_Universal", "name": "Universal Sentences (通用句子)"}], "sentences": [{"id": "sent_seed_0", "categoryIds": ["cat_seed_Technology"], "text": "Hsinchu is a big city located in northern Taiwan.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_1", "categoryIds": ["cat_seed_Technology"], "text": "I usually get around by bike because it saves time and allows me to exercise at the same time.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_2", "categoryIds": ["cat_seed_Technology"], "text": "Hsinchu is a high-tech city, and it is famous for its high-tech companies such as TSMC. As a result, many top universities and research institutes are also located here.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_3", "categoryIds": ["cat_seed_Technology"], "text": "Because of government policies, many high-tech companies were attracted to the city. As a result, a lot of areas are occupied by large companies and university laboratories, so the city is designed with natural landscapes in between, which makes the environment less boring and gives busy people some space to relax.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_4", "categoryIds": ["cat_seed_Technology"], "text": "Personally, I prefer high-tech cities because I am interested in all kinds of technological developments, and I can also build connections with people from different professional backgrounds easily.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_5", "categoryIds": ["cat_seed_Technology"], "text": "Although people in big cities are usually busy and focused on their own goals, I actually prefer this lifestyle because I am not very used to social activities, and this kind of atmosphere suits me well.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_6", "categoryIds": ["cat_seed_Technology"], "text": "On a typical weekday, I take the bus to class in the morning, and after school, I play football with others to relax or go to the lab to make some progress.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_7", "categoryIds": ["cat_seed_Technology"], "text": "Overall, I really enjoy living here because it gives me both energy and balance.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_8", "categoryIds": ["cat_seed_Work"], "text": "I really enjoy studying physics because it allows me to look at the world from a fundamental perspective.", "formula": "I really enjoy ___ because it allows me to ___", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_9", "categoryIds": ["cat_seed_Work"], "text": "I really enjoy machine learning because it allows humans to explore complex natural systems that are beyond human intuition alone.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_10", "categoryIds": ["cat_seed_Work"], "text": "AlphaFold allows us to predict protein structures much more easily, which greatly reduces the time and cost of experiments that used to take decades.", "formula": "___ allows us to ___, which greatly reduces the time and cost of ___", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_11", "categoryIds": ["cat_seed_Work"], "text": "In tokamak research, machine learning helps us predict plasma instabilities, which improves real-time control and brings us closer to the goal of clean and sustainable energy.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_12", "categoryIds": ["cat_seed_Work"], "text": "Applying machine learning to science speeds up both experiments and numerical simulations, making previously unsolvable problems more tractable.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_13", "categoryIds": ["cat_seed_Work"], "text": "That's why I'm currently working on combining ML with physical simulations in my own research.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_14", "categoryIds": ["cat_seed_Sports"], "text": "I became interested in football because I often watch videos of Messi; his ability to organize the game, dribble, shoot, and pass completely changed the way I imagine football.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_15", "categoryIds": ["cat_seed_Sports"], "text": "Football is a game about teamwork, and there are tons of ways to win, which is why its unpredictability makes it the most popular sport in the world.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_16", "categoryIds": ["cat_seed_Sports"], "text": "Attacking midfielder is my favorite position because it allows me to process and predict the situation on the field and feel like everything is under my control.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_17", "categoryIds": ["cat_seed_Sports"], "text": "Football is an essential part of my life because it helps me release stress and brings me a lot of happiness.", "formula": "___ is an essential part of my life because it helps me ___", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_18", "categoryIds": ["cat_seed_Sports"], "text": "Football pitch is the perfect place to relax because football is my favorite activity. It is an unpredictable sport that gives players the freedom to be creative. I love making killer passes and dribbling through several players since I really enjoy creating something that is beyond other people's imagination. I also enjoy the feeling of controlling the game, which is the main reason attacking midfielder is my favorite position. Plus, our brain releases dopamine while playing sports, allowing us to release stress and gain happiness.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_19", "categoryIds": ["cat_seed_Education"], "text": "My research project on Cartpole taught me how to decompose a complex problem in a systematic way.", "formula": "My ___ taught me how to ___", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_20", "categoryIds": ["cat_seed_Education"], "text": "That project also taught me the skills of self-learning.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_21", "categoryIds": ["cat_seed_Education"], "text": "Well, for me, I prefer learning things by myself because I enjoy building knowledge from the ground up and exploring topics based on my own curiosity. When learning on my own, I can go beyond the fixed structure of a course and dive deeper. For example, when I learn machine learning, I choose to thoroughly understand the mathematics behind models and read papers about applications such as AlphaFold. Overall, learning independently allows me to follow my own steps and learn in a way that truly excites me.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_22", "categoryIds": ["cat_seed_Personal"], "text": "I am naturally curious about how things work, and I enjoy exploring new ideas and unfamiliar fields.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_23", "categoryIds": ["cat_seed_Personal"], "text": "I prefer having a schedule that changes from day to day because it gives me the freedom to explore knowledge in a way that's driven by curiosity rather than routine. If I follow the same routine, I might lose motivation and become mechanical. For example, some days I would prefer learning physics, while on other days I would like to run simulations and apply what I've learned. Overall, I prefer having a flexible schedule.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_24", "categoryIds": ["cat_seed_Personal"], "text": "As a busy student, I often have a boxed meal on a busy day because it allows me to finish a meal in a short period of time, which saves a lot of time. Plus, a boxed lunch enables me to have a meal without socializing with other students. Consequently, I could finish a meal within 30 minutes and move on to the next task in my busy day.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_25", "categoryIds": ["cat_seed_Work"], "text": "People around me tend to pursue technological careers. The primary reason is that engineering is one of the most promising occupations in Taiwan, with a high salary and a stable lifestyle. Students and classmates around me often discuss the classes they should enroll in and the laboratories they should join in order to accumulate experience and prepare for opportunities in the future, such as applying for a good job. For instance, one of my friends joined a semiconductor research lab to increase his chances of getting hired by a tech company.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_26", "categoryIds": ["cat_seed_Work"], "text": "Yes, job satisfaction is my first priority when choosing a career, because I can't imagine being tortured by jobs I don't like for decades in my future. For example, I've joined a rocket team and I'm in charge of designing structures, but I can't fit into the culture of the team, and I don't like building structures. In the end, I feel resistant to the task, and it affects my mood. This is a huge lesson for me — it taught me to never betray your feelings and to choose jobs you actually like, or it will take a toll on your mental health.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_27", "categoryIds": ["cat_seed_Work"], "text": "I think changing careers multiple times is helpful for workers, because these experiences would be useful in their upcoming future. For example, I've set my goals from becoming a doctor, then an electrical engineer, to a machine learning scientist. I think these experiences have broadened my horizons and served as a kind of foundation for me to become an ML scientist. I discovered that I was able to apply machine learning models to aerospace engineering and biological research thanks to the previous experiences.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_28", "categoryIds": ["cat_seed_Work"], "text": "I think that artificial intelligence would greatly change the kinds of jobs available in my field, because I am a person who devotes myself to artificial intelligence. I think this trend would boost the demand for machine learning, such as designing new architectures and applying models to other fields, such as engineering and science. In my perspective, the development of artificial intelligence has revolutionized various fields.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_29", "categoryIds": ["cat_seed_Work"], "text": "I prefer handling multiple projects at once because it allows me to discover connections between two different topics when I research fundamental aspects. For example, when working on the projects of machine learning and quantum computers, I discovered that DeepMind released a model that enables transformers to predict the errors of a quantum computer, which really surprised me. It was the chance of doing projects simultaneously that deepened my impression on quantum computer research and machine learning application.", "formula": "", "attempts": 0, "correct": 0, "level": 1}, {"id": "sent_seed_30", "categoryIds": ["cat_seed_ThinkingGame", "cat_seed_Technology", "cat_seed_Morals"], "text": "It doesn't help if you have the tallest ladder when you're going to the moon.", "formula": "It doesn't help if you have the tallest ___ when you're going to ___.", "attempts": 1, "correct": 1, "level": 2}, {"id": "sent_seed_31", "categoryIds": ["cat_seed_ThinkingGame", "cat_seed_Work"], "text": "The opinion of quite a few people on the team is that this is sort of a fool's errand in some way.", "formula": "The opinion of ___ is that ___.", "attempts": 1, "correct": 0, "level": 1}, {"id": "sent_2awyo8n", "categoryIds": ["cat_seed_ThinkingGame", "cat_seed_Personal", "cat_seed_Morals"], "text": "This intuitive feeling came over me that although I love chess, this is not the right thing to spend my whole life on.", "formula": "This intuitive feeling came over me that although I love ___, this is not the right thing to spend my whole life on.", "attempts": 1, "correct": 1, "level": 2}, {"id": "sent_nlqsb6a", "categoryIds": ["cat_seed_ThinkingGame", "cat_seed_Work"], "text": "So kind of a rapid debrief, …", "formula": "So kind of a rapid ___, …", "attempts": 1, "correct": 0, "level": 1}, {"id": "sent_z6d79sw", "categoryIds": ["cat_seed_ThinkingGame", "cat_seed_Work", "cat_seed_Technology"], "text": "I'm excited for AlphaFold. For my research, it's already propelling lots of progress, and that's just the beginning.", "formula": "I'm excited for ___. For my ___, it's already propelling lots of progress, and that's just the beginning.", "attempts": 1, "correct": 1, "level": 2}, {"id": "sent_ucaa5zk", "categoryIds": ["cat_seed_ThinkingGame"], "text": "That's fantastic. It's like drawing back the curtain, and seeing the whole world of protien structures", "formula": "That's fantastic. It's like drawing back the curtain , and seeing the whole world of ___ .", "attempts": 0, "correct": 0, "level": 1}]}, "stories": [{"id": "story_seed_0", "title": "Hsinchu：在高科技城市長大", "details": "城市＝任何「高科技/繁忙/資源便利」的地方；可替換成任何家鄉描述、任何一個科技/學術重鎮", "turningPoint": "周圍是公司與實驗室，卻穿插自然景觀讓生活不無聊；讓我對科技資訊產生興趣，能跟各領域的人討論", "angles": ["Hometown", "City life", "Technology", "Environment"], "attempts": 0, "correct": 0, "level": 1, "originalSentences": ["Hsinchu is a big city located in northern Taiwan.", "I usually get around by bike because it saves time and allows me to exercise at the same time.", "Hsinchu is a high-tech city, and it is famous for its high-tech companies such as TSMC.", "As a result, many top universities and research institutes are also located here.", "Because of government policies, many high-tech companies were attracted to the city.", "As a result, a lot of areas are occupied by large companies and university laboratories.", "As a result, the city is designed with natural landscapes in between, which makes the environment less boring and gives busy people some space to relax.", "Personally, I prefer high-tech cities because I am interested in all kinds of technological developments, and I can also build connections with people from different professional backgrounds easily.", "Although people in big cities are usually busy and focused on their own goals, I actually prefer this lifestyle because I am not very used to social activities, and this kind of atmosphere suits me well.", "For instance, I can focus on my research without being constantly interrupted by social events, which helps me maintain productivity.", "On a typical weekday, I take the bus to class in the morning, and after school, I play football with others to relax or go the lab to make some progress.", "Everything I need like food, transportation, or sport cours is within easy reach.", "Overall, I really enjoy living here because it gives me both energy and balance."]}, {"id": "story_seed_1", "title": "Physics & ML：為什麼選擇這個領域", "details": "Tokamak 核融合、AlphaFold 兩個例子；可替換成任何「用工具/方法解決原本無法解決的問題」的情境", "turningPoint": "這個領域讓人類能觸及原本單靠直覺無法處理的複雜系統，橫跨多領域滿足多元興趣", "angles": ["Career Choice", "Technology", "Science", "Passion", "Education"], "attempts": 0, "correct": 0, "level": 1, "originalSentences": ["I really enjoy studying physics because it allows me to look at the world from a fundamental perspective.", "It reshapes the way I understand reality and helps me quickly grasp the essence of complex phenomena.", "I really enjoy machine learning because it allows humans to explore complex natural systems that are beyond human intuition alone.", "For example, alphafold allows us to predict protein structures much more easily, which greatly reduces the time and cost of experiment that used to take decades.", "Moreover, by understanding how proteins work, we can even design new proteins for different applications such as medical research and disease treatment, and this opens up new possibilities for future therapies.", "In tokamak research, machine learning helps us predict plasma instabilities, which improves real-time control and brings us closer to the goal of clean and sustainable energy.", "Applying machine learning to science speeds up both experiments and numerical simulations, making previously unsolvable problems more tractable.", "That's why I'm currently working on combining ML with physical simulations in my own research."]}, {"id": "story_seed_2", "title": "足球與 Messi：我的興趣", "details": "進攻中場位置、2019 歐冠對利物浦；可替換成任何「因為某個偶像而愛上一件事」的敘事", "turningPoint": "喜歡掌控全局、喜歡「顛覆他人想像」的美學感受；踢球能釋放壓力、切換心情", "angles": ["Hobbies", "Relaxation", "Teamwork", "Role models", "Stress relief"], "attempts": 0, "correct": 0, "level": 1, "originalSentences": ["I become interested in football because I often watch videos of Messi.", "I really admire his ability to organize the game, dribble, shoot, and pass, and his skills completely changed the way I imagine football.", "Especially the game against Liverpool in the 2019 Champions League, Messi was line a one-man army and led Barcelona to compete against a very strong opponent.", "Football is a game about teamwork.", "Plus, there are tons of ways to win the game, and the unpredictability is the main reason why it is the most popular sport in the world.", "Attacking Midfielder is my favorite position.", "It allows me to process and predict the situation on the field.", "I especially enjoy when I feel that everything is under my control.", "I also enjoy making a killer pass or dribble past several opponents since I love the feeling of surprising people and going beyond their imagination.", "Football is an essential part of my life because it helps me release stress and bring me a lot of happiness."]}, {"id": "story_seed_3", "title": "Cartpole 專題：學會拆解問題", "details": "物理系的研究專題經驗；可替換成任何「一開始很挫折、後來抓到方法」的學習經驗", "turningPoint": "學會系統性拆解任務、抽象思考、大量自學，培養出獨立解決問題的意志力", "angles": ["Learning experience", "Problem solving", "Research", "Perseverance", "Frustration"], "attempts": 0, "correct": 0, "level": 1, "originalSentences": ["Research project Cartpole teaches me ….", "Decompose a complex problem in a systematic way.", "The skills of self-learning."]}, {"id": "story_seed_4", "title": "好奇心與意志力：我的個性", "details": "廣泛閱讀各領域（傳記、小說、工程、藝術）；可替換成任何「主動查資料、不輕易放棄」的具體行為", "turningPoint": "高度自我管理、目標導向，長時間專注在同一個問題上不放棄", "angles": ["Personality", "Work ethic", "Perseverance", "Curiosity"], "attempts": 0, "correct": 0, "level": 1, "originalSentences": ["I am naturally curious about how things work, and I enjoy exploring new ideas and unfamiliar fields.", "I often spend much time discussing problems in fields like engineering and philosophy with other people in order to acquire new knowledge from others."]}], "log": [{"date": "2026-08-18T11:44:31.854Z", "categoryId": "cat_seed_ThinkingGame", "categoryName": "The Thinking Game", "total": 5, "recalled": 3, "results": [{"sentenceId": "sent_seed_30", "recalled": true}, {"sentenceId": "sent_seed_31", "recalled": false}, {"sentenceId": "sent_2awyo8n", "recalled": true}, {"sentenceId": "sent_nlqsb6a", "recalled": false}, {"sentenceId": "sent_z6d79sw", "recalled": true}]}, {"date": "2026-08-18T11:44:35.865Z", "categoryId": "cat_seed_ThinkingGame", "categoryName": "The Thinking Game", "total": 5, "recalled": 3, "results": [{"sentenceId": "sent_seed_30", "recalled": true}, {"sentenceId": "sent_seed_31", "recalled": false}, {"sentenceId": "sent_2awyo8n", "recalled": true}, {"sentenceId": "sent_nlqsb6a", "recalled": false}, {"sentenceId": "sent_z6d79sw", "recalled": true}]}], "mockTests": [], "lrSessions": [], "universalTemplates": []};
+
+
+  const BANK_KEY = 'speaking-bank-data-v3';
+  const STORY_KEY = 'speaking-story-bank-v2';
+  const LOG_KEY = 'speaking-practice-log-v2';
+  const MOCK_KEY = 'speaking-mocktest-v1';
+  const LR_KEY = 'speaking-listenrepeat-v1';
+  const UNIV_KEY = 'speaking-universal-templates-v1';
+
+  /* ===== 儲存層：localStorage + JSONBin.io 手動同步（完全不依賴 Anthropic） ===== */
+  const BIN_ID_KEY = '__jsonbin_id_speaking__';
+  const API_KEY_KEY = '__jsonbin_key_speaking__';
+  const ALL_KEYS = [BANK_KEY, STORY_KEY, LOG_KEY, MOCK_KEY, LR_KEY, UNIV_KEY];
+  let cloudCache = null;
+
+  const getBinId  = () => { try{ return localStorage.getItem(BIN_ID_KEY) || ''; }catch(e){ return ''; } };
+  const getApiKey = () => { try{ return localStorage.getItem(API_KEY_KEY) || ''; }catch(e){ return ''; } };
+  function setBinCreds(id, key){
+    try{ localStorage.setItem(BIN_ID_KEY, id); localStorage.setItem(API_KEY_KEY, key); }catch(e){}
+  }
+  function syncMsg(t){ const el = document.getElementById('syncStatus'); if(el) el.textContent = t; }
+
+  async function cloudLoad(){
+    const id = getBinId(), key = getApiKey();
+    if(!id || !key) return null;
+    try{
+      const res = await fetch('https://api.jsonbin.io/v3/b/' + id + '/latest', {
+        headers: { 'X-Master-Key': key, 'X-Bin-Meta': 'false' }
+      });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      cloudCache = await res.json();
+      if(typeof cloudCache !== 'object' || cloudCache === null) cloudCache = {};
+      syncMsg('已讀取雲端資料 · ' + new Date().toLocaleTimeString());
+    }catch(e){
+      console.error('雲端讀取失敗', e);
+      cloudCache = null;
+      syncMsg('雲端讀取失敗：' + e.message);
+    }
+    return cloudCache;
+  }
+
+  async function cloudSave(){
+    const id = getBinId(), key = getApiKey();
+    if(!id || !key || !cloudCache) return;
+    try{
+      const res = await fetch('https://api.jsonbin.io/v3/b/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Master-Key': key },
+        body: JSON.stringify(cloudCache)
+      });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      syncMsg('已同步 · ' + new Date().toLocaleTimeString());
+    }catch(e){
+      console.error('雲端寫入失敗', e);
+      syncMsg('同步失敗（資料仍存在本機）：' + e.message);
+    }
+  }
+
+  const Store = {
+    async get(key){
+      if(cloudCache && Object.prototype.hasOwnProperty.call(cloudCache, key)){
+        return { key, value: cloudCache[key] };
+      }
+      try{
+        const v = localStorage.getItem(key);
+        return v === null ? null : { key, value: v };
+      }catch(e){ return null; }
+    },
+    async set(key, value){
+      try{ localStorage.setItem(key, value); }catch(e){}
+      if(cloudCache) cloudCache[key] = value;
+      return { key, value };
+    }
+  };
+
+  let bank = { categories: [], sentences: [] };
+  let stories = [];
+  let log = [];
+  let mockTests = [];
+  let lrSessions = [];
+  let universalTemplates = [];
+  let currentDraw = null;
+  let currentChecks = {};
+  let currentStoryChecks = {};
+  let currentBonusStories = [];
+  let activeAngleFilter = null;
+
+  function uid(prefix){ return prefix + '_' + Math.random().toString(36).slice(2,9); }
+  function escapeHtml(str){ const div = document.createElement('div'); div.textContent = str || ''; return div.innerHTML; }
+
+  const SEED_CATS = [
+    { key: 'Education', name: 'Education & Learning' },
+    { key: 'Work', name: 'Work & Career' },
+    { key: 'Technology', name: 'Technology & Daily Life' },
+    { key: 'Social', name: 'Social Life & Relationships' },
+    { key: 'Personal', name: 'Personal Choices & Lifestyle' },
+    { key: 'Sports', name: 'Sports & Health' },
+    { key: 'Morals', name: 'Morals & Values' },
+    { key: 'Environment', name: 'Environment & Social Issues' },
+    { key: 'ThinkingGame', name: 'The Thinking Game' },
+    { key: 'Universal', name: 'Universal Sentences (通用句子)' }
+  ];
+  const TOPIC_KEYS = ['Education','Work','Technology','Social','Personal','Sports','Morals','Environment'];
+
+  function levelColor(level){
+    const map = { 1: 'var(--bad)', 2: '#c98a5a', 3: 'var(--amber)', 4: '#8fbf8a', 5: 'var(--good)' };
+    return map[level] || 'var(--amber)';
+  }
+  function levelBadge(level){
+    const l = level || 1;
+    const col = levelColor(l);
+    return '<span class="lvl-badge" style="color:' + col + '; border-color:' + col + ';">Lv.' + l + '</span>';
+  }
+
+  async function loadData(){
+    try { const r = await Store.get(BANK_KEY); if (r && r.value) bank = JSON.parse(r.value); } catch(e){}
+    try { const r2 = await Store.get(LOG_KEY); if (r2 && r2.value) log = JSON.parse(r2.value); } catch(e){}
+    try { const r3 = await Store.get(STORY_KEY); if (r3 && r3.value) stories = JSON.parse(r3.value); } catch(e){}
+    try { const r4 = await Store.get(MOCK_KEY); if (r4 && r4.value) mockTests = JSON.parse(r4.value); } catch(e){}
+    try { const r5 = await Store.get(LR_KEY); if (r5 && r5.value) lrSessions = JSON.parse(r5.value); } catch(e){}
+    try { const r6 = await Store.get(UNIV_KEY); if (r6 && r6.value) universalTemplates = JSON.parse(r6.value); } catch(e){}
+
+    // 第一次載入：用內建備份當起點
+    if (bank.categories.length === 0 && bank.sentences.length === 0) {
+      bank = JSON.parse(JSON.stringify(BACKUP_SEED.bank));
+      await saveBank();
+    }
+    if (stories.length === 0 && BACKUP_SEED.stories.length) {
+      stories = JSON.parse(JSON.stringify(BACKUP_SEED.stories));
+      await saveStories();
+    }
+    if (log.length === 0 && BACKUP_SEED.log.length) {
+      log = JSON.parse(JSON.stringify(BACKUP_SEED.log));
+      await saveLog();
+    }
+    if (mockTests.length === 0 && BACKUP_SEED.mockTests.length) {
+      mockTests = JSON.parse(JSON.stringify(BACKUP_SEED.mockTests));
+      await saveMock();
+    }
+    if (lrSessions.length === 0 && BACKUP_SEED.lrSessions.length) {
+      lrSessions = JSON.parse(JSON.stringify(BACKUP_SEED.lrSessions));
+      await saveLR();
+    }
+    if (universalTemplates.length === 0 && BACKUP_SEED.universalTemplates.length) {
+      universalTemplates = JSON.parse(JSON.stringify(BACKUP_SEED.universalTemplates));
+      await saveUniv();
+    }
+
+    universalTemplates.forEach(t => {
+      (t.examples||[]).forEach(ex => {
+        if (ex.level==null) ex.level = 1;
+        if (ex.attempts==null) ex.attempts = 0;
+        if (ex.correct==null) ex.correct = 0;
+      });
+    });
+    bank.sentences.forEach(s => {
+      if (s.level==null) s.level = 1;
+      if (s.attempts==null) s.attempts = 0;
+      if (s.correct==null) s.correct = 0;
+      if (!s.categoryIds) { s.categoryIds = s.categoryId ? [s.categoryId] : []; }
+    });
+    stories.forEach(s => {
+      if (s.level==null) s.level = 1;
+      if (s.attempts==null) s.attempts = 0;
+      if (s.correct==null) s.correct = 0;
+      if (!s.angles) s.angles = [];
+      if (!s.originalSentences) {
+        s.originalSentences = s.originalText ? s.originalText.split('\n').map(l=>l.replace(/^\d+\.\s*/, '').trim()).filter(Boolean) : [];
+      }
+    });
+    mockTests.forEach(m => {
+      if (m.mistakes==null) m.mistakes = m.corrections || '';
+      if (m.adjustment==null) m.adjustment = m.plan || '';
+      if (m.sample==null) m.sample = '';
+    });
+    renderAll();
+  }
+  async function saveBank(){ await Store.set(BANK_KEY, JSON.stringify(bank)); }
+  async function saveStories(){ await Store.set(STORY_KEY, JSON.stringify(stories)); }
+  async function saveLog(){ await Store.set(LOG_KEY, JSON.stringify(log)); }
+  async function saveMock(){ await Store.set(MOCK_KEY, JSON.stringify(mockTests)); }
+  async function saveLR(){ await Store.set(LR_KEY, JSON.stringify(lrSessions)); }
+  async function saveUniv(){ await Store.set(UNIV_KEY, JSON.stringify(universalTemplates)); }
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'stats') renderStats();
+      if (btn.dataset.tab === 'bank') { renderBankList(); renderUnivList(); }
+      if (btn.dataset.tab === 'story') showStoryList();
+      if (btn.dataset.tab === 'mocktest') { renderMockList(); renderLRSessions(); }
+    });
+  });
+
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const isInterview = btn.dataset.mode === 'interview';
+      document.getElementById('mock-interview-view').style.display = isInterview ? 'block' : 'none';
+      document.getElementById('mock-listenrepeat-view').style.display = isInterview ? 'none' : 'block';
+    });
+  });
+
+  function universalCatId(){ const c = bank.categories.find(x=>x.name && x.name.indexOf('Universal Sentences') !== -1); return c ? c.id : null; }
+  function tagSortIndex(tag){ const i = TOPIC_KEYS.indexOf(tag); return i === -1 ? TOPIC_KEYS.length : i; }
+  function sortByTag(examples){ return examples.slice().sort((a,b) => tagSortIndex(a.tag) - tagSortIndex(b.tag)); }
+
+  function flattenUniversalExamples(){
+    const out = [];
+    universalTemplates.forEach(t => {
+      (t.examples||[]).forEach(ex => { out.push({ id: ex.id, text: ex.text, formula: t.formula, tag: ex.tag, attempts: ex.attempts, correct: ex.correct, level: ex.level }); });
+    });
+    return sortByTag(out);
+  }
+
+  function renderCatSelect(){
+    const sel = document.getElementById('cat-select');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— 隨機抽題 —</option>';
+    const univId = universalCatId();
+    bank.categories.forEach(c => {
+      let count;
+      if (c.id === univId) { count = flattenUniversalExamples().length; }
+      else { count = bank.sentences.filter(s=>(s.categoryIds||[]).includes(c.id)).length; }
+      if (count === 0) return;
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.name + '（' + count + '句）';
+      sel.appendChild(opt);
+    });
+    sel.value = cur;
+  }
+
+  // ---------- Draw / Practice ----------
+  document.getElementById('btn-draw').addEventListener('click', () => {
+    const selVal = document.getElementById('cat-select').value;
+    const univId = universalCatId();
+    const catsWithSentences = bank.categories.filter(c => {
+      if (c.id === univId) return flattenUniversalExamples().length > 0;
+      return bank.sentences.some(s=>(s.categoryIds||[]).includes(c.id));
+    });
+    if (catsWithSentences.length === 0) { alert('句庫目前是空的，先到「句庫管理」新增分類和句子。'); return; }
+    let cat = selVal ? bank.categories.find(c=>c.id===selVal) : catsWithSentences[Math.floor(Math.random()*catsWithSentences.length)];
+    currentDraw = { categoryId: cat.id, categoryName: cat.name };
+    currentChecks = {}; currentStoryChecks = {};
+    document.getElementById('sample-tag').textContent = 'SAMPLE #' + (log.length + 1).toString().padStart(3,'0');
+    document.getElementById('topic-name').textContent = cat.name;
+    document.getElementById('draw-controls').style.display = 'none';
+    document.getElementById('draw-card').style.display = 'block';
+    document.getElementById('reveal-card').style.display = 'none';
+    document.getElementById('story-bonus-card').style.display = 'none';
+    document.getElementById('finish-row').style.display = 'none';
+    document.getElementById('summary-card').style.display = 'none';
+  });
+
+  document.getElementById('btn-cancel-draw').addEventListener('click', () => {
+    currentDraw = null;
+    document.getElementById('draw-card').style.display = 'none';
+    document.getElementById('draw-controls').style.display = 'block';
+  });
+
+  document.getElementById('btn-reveal').addEventListener('click', () => {
+    if (!currentDraw) return;
+    const isUniv = currentDraw.categoryId === universalCatId();
+    const items = isUniv ? flattenUniversalExamples() : bank.sentences.filter(s=>(s.categoryIds||[]).includes(currentDraw.categoryId));
+    document.getElementById('reveal-label').textContent = currentDraw.categoryName + ' — 勾選你剛剛真的想到、講得出來的句子';
+    const list = document.getElementById('sentence-list');
+    list.innerHTML = '';
+    let lastRevealTag;
+    items.forEach(s => {
+      const attempts = s.attempts || 0, correct = s.correct || 0;
+      const acc = attempts > 0 ? Math.round(correct/attempts*100) + '%' : '尚未練習';
+      const tagName = isUniv && s.tag ? (SEED_CATS.find(c=>c.key===s.tag)||{}).name : null;
+      if (isUniv && s.tag !== lastRevealTag) {
+        lastRevealTag = s.tag;
+        const groupLabel = document.createElement('div');
+        groupLabel.className = 'univ-group-label';
+        groupLabel.textContent = s.tag ? tagName : '未標記';
+        list.appendChild(groupLabel);
+      }
+      const row = document.createElement('div');
+      row.className = 'sentence-item';
+      row.innerHTML =
+        '<div class="chk" data-id="' + s.id + '">✓</div>' +
+        '<div style="flex:1;">' +
+          (s.formula ? '<div class="formula-tag">' + escapeHtml(s.formula) + '</div>' : '') +
+          '<div class="sentence-text">' + escapeHtml(s.text) + '</div>' +
+          '<div class="sentence-note">' + levelBadge(s.level) + ' <span>回想率 ' + acc + '（' + attempts + '次）</span>' +
+          (tagName ? ' <span class="formula-tag" style="margin-left:4px;">' + escapeHtml(tagName) + '</span>' : '') + '</div>' +
+        '</div>';
+      row.querySelector('.chk').addEventListener('click', function(){ currentChecks[s.id] = this.classList.toggle('on'); });
+      list.appendChild(row);
+    });
+
+    const catNameLower = currentDraw.categoryName.toLowerCase();
+    currentBonusStories = stories.filter(st => (st.angles||[]).some(a => a.toLowerCase().includes(catNameLower) || catNameLower.includes(a.toLowerCase())));
+    const bonusCard = document.getElementById('story-bonus-card');
+    const bonusList = document.getElementById('story-bonus-list');
+    if (currentBonusStories.length > 0) {
+      bonusList.innerHTML = '';
+      currentBonusStories.forEach(st => {
+        const row = document.createElement('div');
+        row.className = 'sentence-item';
+        row.innerHTML =
+          '<div class="chk" data-id="' + st.id + '">✓</div>' +
+          '<div style="flex:1;">' +
+            '<div class="sentence-text">' + escapeHtml(st.title) + '</div>' +
+            '<div class="sentence-note">' + levelBadge(st.level) + ' <span>這個故事套得上這個主題嗎？想到就打勾</span></div>' +
+          '</div>';
+        row.querySelector('.chk').addEventListener('click', function(){ currentStoryChecks[st.id] = this.classList.toggle('on'); });
+        bonusList.appendChild(row);
+      });
+      bonusCard.style.display = 'block';
+    } else {
+      bonusCard.style.display = 'none';
+    }
+
+    document.getElementById('draw-card').style.display = 'none';
+    document.getElementById('reveal-card').style.display = 'block';
+    document.getElementById('finish-row').style.display = 'flex';
+  });
+
+  document.getElementById('btn-back-draw').addEventListener('click', () => {
+    document.getElementById('reveal-card').style.display = 'none';
+    document.getElementById('story-bonus-card').style.display = 'none';
+    document.getElementById('finish-row').style.display = 'none';
+    document.getElementById('draw-card').style.display = 'block';
+  });
+
+  document.getElementById('btn-finish').addEventListener('click', async () => {
+    if (!currentDraw) return;
+    const isUniv = currentDraw.categoryId === universalCatId();
+    let items, recalledCount = 0;
+    const results = [];
+    if (isUniv) {
+      items = flattenUniversalExamples();
+      items.forEach(item => {
+        const recalled = !!currentChecks[item.id];
+        if (recalled) recalledCount++;
+        universalTemplates.forEach(t => {
+          const ex = (t.examples||[]).find(e=>e.id===item.id);
+          if (ex) {
+            ex.attempts = (ex.attempts||0) + 1;
+            ex.correct = (ex.correct||0) + (recalled ? 1 : 0);
+            ex.level = recalled ? Math.min(5, (ex.level||1)+1) : Math.max(1, (ex.level||1)-1);
+          }
+        });
+        results.push({ sentenceId: item.id, recalled });
+      });
+    } else {
+      items = bank.sentences.filter(s=>(s.categoryIds||[]).includes(currentDraw.categoryId));
+      items.forEach(s => {
+        const recalled = !!currentChecks[s.id];
+        if (recalled) recalledCount++;
+        s.attempts = (s.attempts || 0) + 1;
+        s.correct = (s.correct || 0) + (recalled ? 1 : 0);
+        s.level = recalled ? Math.min(5, (s.level||1) + 1) : Math.max(1, (s.level||1) - 1);
+        results.push({ sentenceId: s.id, recalled });
+      });
+    }
+    currentBonusStories.forEach(st => {
+      const recalled = !!currentStoryChecks[st.id];
+      st.attempts = (st.attempts || 0) + 1;
+      st.correct = (st.correct || 0) + (recalled ? 1 : 0);
+      st.level = recalled ? Math.min(5, (st.level||1) + 1) : Math.max(1, (st.level||1) - 1);
+    });
+    log.push({ date: new Date().toISOString(), categoryId: currentDraw.categoryId, categoryName: currentDraw.categoryName, total: items.length, recalled: recalledCount, results });
+    await saveBank(); await saveStories(); await saveLog(); await saveUniv();
+
+    document.getElementById('summary-num').textContent = recalledCount + '/' + items.length;
+    document.getElementById('reveal-card').style.display = 'none';
+    document.getElementById('story-bonus-card').style.display = 'none';
+    document.getElementById('finish-row').style.display = 'none';
+    document.getElementById('summary-card').style.display = 'block';
+    renderCatSelect();
+  });
+
+  document.getElementById('btn-again').addEventListener('click', () => {
+    currentDraw = null;
+    document.getElementById('summary-card').style.display = 'none';
+    document.getElementById('draw-controls').style.display = 'block';
+  });
+
+  // ---------- Bank management ----------
+  document.getElementById('btn-add-cat').addEventListener('click', async () => {
+    const input = document.getElementById('new-cat-name');
+    const name = input.value.trim();
+    if (!name) return;
+    if (bank.categories.some(c=>c.name.toLowerCase()===name.toLowerCase())) { alert('這個分類已經存在了'); return; }
+    bank.categories.push({ id: uid('cat'), name });
+    input.value = '';
+    await saveBank(); renderAll();
+  });
+
+  document.getElementById('btn-bulk-import').addEventListener('click', async () => {
+    const raw = document.getElementById('bulk-input').value;
+    const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+    if (lines.length === 0) return;
+    let added = 0, skipped = 0;
+    lines.forEach(line => {
+      const parts = line.split('::').map(p=>p.trim());
+      if (parts.length < 2) { skipped++; return; }
+      let catField, formula, text;
+      if (parts.length >= 3) { catField = parts[0]; formula = parts[1]; text = parts.slice(2).join('::').trim(); }
+      else { catField = parts[0]; formula = ''; text = parts[1]; }
+      if (!catField || !text) { skipped++; return; }
+      const catNames = catField.split('+').map(n=>n.trim()).filter(Boolean);
+      if (catNames.length === 0) { skipped++; return; }
+      const categoryIds = catNames.map(catName => {
+        let cat = bank.categories.find(c=>c.name.toLowerCase()===catName.toLowerCase());
+        if (!cat) { cat = { id: uid('cat'), name: catName }; bank.categories.push(cat); }
+        return cat.id;
+      });
+      bank.sentences.push({ id: uid('sent'), categoryIds, text, formula, attempts: 0, correct: 0, level: 1 });
+      added++;
+    });
+    document.getElementById('bulk-input').value = '';
+    await saveBank(); renderAll();
+    alert('匯入完成：新增 ' + added + ' 句' + (skipped ? '，略過 ' + skipped + ' 行（格式錯誤）' : ''));
+  });
+
+  function renderBankList(){
+    const container = document.getElementById('bank-list');
+    if (bank.categories.length === 0) { container.innerHTML = '<div class="empty">還沒有任何分類，先在上面新增或批次匯入</div>'; return; }
+    container.innerHTML = '';
+    bank.categories.forEach(cat => {
+      const sentences = bank.sentences.filter(s=>(s.categoryIds||[]).includes(cat.id));
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = '<div class="cat-header"><div class="cat-name">' + escapeHtml(cat.name) + '</div><div class="cat-count">' + sentences.length + ' 句</div></div>';
+
+      const addRow = document.createElement('div');
+      addRow.innerHTML =
+        '<input type="text" placeholder="句型公式（選填）" class="add-formula-input" style="margin-bottom:6px;">' +
+        '<div class="row" style="margin-bottom:10px;">' +
+          '<input type="text" placeholder="新增句子..." class="add-sent-input">' +
+          '<button class="btn ghost add-sent-btn" style="flex:0 0 auto;">新增</button>' +
+        '</div>';
+      card.appendChild(addRow);
+      addRow.querySelector('.add-sent-btn').addEventListener('click', async () => {
+        const inp = addRow.querySelector('.add-sent-input');
+        const finp = addRow.querySelector('.add-formula-input');
+        const text = inp.value.trim();
+        const formula = finp.value.trim();
+        if (!text) return;
+        bank.sentences.push({ id: uid('sent'), categoryIds: [cat.id], text, formula, attempts: 0, correct: 0, level: 1 });
+        inp.value = ''; finp.value = '';
+        await saveBank(); renderAll();
+      });
+
+      sentences.forEach(s => {
+        const attempts = s.attempts || 0, correct = s.correct || 0;
+        const acc = attempts > 0 ? Math.round(correct/attempts*100) + '%' : '—';
+        const otherCats = (s.categoryIds||[]).filter(id=>id!==cat.id).map(id => (bank.categories.find(c=>c.id===id)||{}).name).filter(Boolean);
+        const row = document.createElement('div');
+        row.className = 'sent-row';
+        row.innerHTML = '<div class="body">' +
+            (s.formula ? '<div class="formula-tag">' + escapeHtml(s.formula) + '</div>' : '') +
+            '<div class="txt" contenteditable="true">' + escapeHtml(s.text) + '</div>' +
+            '<div class="meta">' + levelBadge(s.level) + '<span class="acc">' + acc + '（' + attempts + '次）</span></div>' +
+            (otherCats.length ? '<div class="acc" style="margin-top:3px;">也屬於：' + otherCats.map(n=>escapeHtml(n)).join('、') + '</div>' : '') +
+          '</div>' +
+          '<button class="del-x" title="刪除">✕</button>';
+        row.querySelector('.txt').addEventListener('blur', async function(){
+          s.text = this.textContent.trim();
+          await saveBank();
+        });
+        row.querySelector('.del-x').addEventListener('click', async () => {
+          if (!confirm('刪除這句嗎？（會從所有分類中一併移除）')) return;
+          bank.sentences = bank.sentences.filter(x=>x.id!==s.id);
+          await saveBank(); renderAll();
+        });
+        card.appendChild(row);
+      });
+
+      const delCatBtn = document.createElement('button');
+      delCatBtn.className = 'btn danger ghost';
+      delCatBtn.style.cssText = 'margin-top:10px; width:100%;';
+      delCatBtn.textContent = '刪除整個分類';
+      delCatBtn.addEventListener('click', async () => {
+        if (!confirm('這會刪除「' + cat.name + '」這個分類（只屬於這個分類的句子也會一併刪除），確定嗎？')) return;
+        bank.categories = bank.categories.filter(c=>c.id!==cat.id);
+        bank.sentences.forEach(s => { s.categoryIds = (s.categoryIds||[]).filter(id=>id!==cat.id); });
+        bank.sentences = bank.sentences.filter(s => (s.categoryIds||[]).length > 0);
+        await saveBank(); renderAll();
+      });
+      card.appendChild(delCatBtn);
+      container.appendChild(card);
+    });
+  }
+
+  // ---------- Universal Templates ----------
+  function topicTagOptions(selectedKey){
+    return TOPIC_KEYS.map(k => {
+      const name = (SEED_CATS.find(c=>c.key===k)||{}).name || k;
+      return '<option value="' + k + '" ' + (k===selectedKey?'selected':'') + '>' + escapeHtml(name) + '</option>';
+    }).join('');
+  }
+
+  document.getElementById('btn-add-univ').addEventListener('click', async () => {
+    const inp = document.getElementById('new-univ-formula');
+    const formula = inp.value.trim();
+    if (!formula) return;
+    universalTemplates.push({ id: uid('univ'), formula, examples: [] });
+    inp.value = '';
+    await saveUniv(); renderUnivList();
+  });
+
+  function renderUnivList(){
+    const container = document.getElementById('univ-template-list');
+    if (universalTemplates.length === 0) { container.innerHTML = '<div class="empty">還沒有通用句型模板，先在上面新增</div>'; return; }
+    container.innerHTML = '';
+    universalTemplates.forEach(t => {
+      const card = document.createElement('div');
+      card.className = 'univ-template-card';
+      card.innerHTML =
+        '<div class="univ-formula-row">' +
+          '<div class="univ-formula" contenteditable="true">' + escapeHtml(t.formula) + '</div>' +
+          '<button class="del-x">✕ 刪除模板</button>' +
+        '</div>' +
+        '<div class="univ-examples"></div>' +
+        '<div class="univ-add-example">' +
+          '<input type="text" placeholder="新增例句...">' +
+          '<select>' + topicTagOptions() + '</select>' +
+          '<button class="btn ghost">加入</button>' +
+        '</div>';
+      card.querySelector('.univ-formula').addEventListener('blur', async function(){
+        t.formula = this.textContent.trim();
+        await saveUniv();
+      });
+      card.querySelector('.del-x').addEventListener('click', async () => {
+        if (!confirm('刪除整個模板「' + t.formula + '」以及底下所有例句嗎？')) return;
+        universalTemplates = universalTemplates.filter(x=>x.id!==t.id);
+        await saveUniv(); renderUnivList();
+      });
+
+      const exContainer = card.querySelector('.univ-examples');
+      const sortedExamples = sortByTag(t.examples||[]);
+      let lastTag;
+      sortedExamples.forEach(ex => {
+        if (ex.tag !== lastTag) {
+          lastTag = ex.tag;
+          const groupLabel = document.createElement('div');
+          groupLabel.className = 'univ-group-label';
+          groupLabel.textContent = ex.tag ? ((SEED_CATS.find(c=>c.key===ex.tag)||{}).name || ex.tag) : '未標記';
+          exContainer.appendChild(groupLabel);
+        }
+        const row = document.createElement('div');
+        row.className = 'univ-example-row';
+        row.innerHTML =
+          '<div class="ex-text" contenteditable="true">' + escapeHtml(ex.text) + '</div>' +
+          '<select>' + topicTagOptions(ex.tag) + '</select>' +
+          levelBadge(ex.level) +
+          '<button class="del-p">✕</button>';
+        row.querySelector('.ex-text').addEventListener('blur', async function(){
+          ex.text = this.textContent.trim();
+          await saveUniv();
+        });
+        row.querySelector('select').addEventListener('change', async function(){
+          ex.tag = this.value;
+          await saveUniv(); renderUnivList();
+        });
+        row.querySelector('.del-p').addEventListener('click', async () => {
+          t.examples = t.examples.filter(x=>x.id!==ex.id);
+          await saveUniv(); renderUnivList();
+        });
+        exContainer.appendChild(row);
+      });
+
+      const addInput = card.querySelector('.univ-add-example input');
+      const addSelect = card.querySelector('.univ-add-example select');
+      const addBtn = card.querySelector('.univ-add-example button');
+      addBtn.addEventListener('click', async () => {
+        const text = addInput.value.trim();
+        if (!text) return;
+        t.examples = t.examples || [];
+        t.examples.push({ id: uid('ex'), text, tag: addSelect.value, attempts: 0, correct: 0, level: 1 });
+        await saveUniv(); renderUnivList();
+      });
+
+      container.appendChild(card);
+    });
+  }
+
+  // ---------- Story Bank ----------
+  document.getElementById('btn-add-story').addEventListener('click', async () => {
+    const title = document.getElementById('new-story-title').value.trim();
+    const details = document.getElementById('new-story-details').value.trim();
+    const turn = document.getElementById('new-story-turn').value.trim();
+    const anglesRaw = document.getElementById('new-story-angles').value.trim();
+    const originalRaw = document.getElementById('new-story-original').value.trim();
+    if (!title) { alert('至少要填標題／核心事件'); return; }
+    const angles = anglesRaw ? anglesRaw.split(',').map(a=>a.trim()).filter(Boolean) : [];
+    const originalSentences = originalRaw ? originalRaw.split('\n').map(l=>l.trim()).filter(Boolean) : [];
+    stories.push({ id: uid('story'), title, details, turningPoint: turn, angles, originalSentences, attempts: 0, correct: 0, level: 1 });
+    ['new-story-title','new-story-details','new-story-turn','new-story-angles','new-story-original'].forEach(id=>document.getElementById(id).value='');
+    await saveStories(); renderStoryList();
+  });
+
+  function allAngles(){
+    const set = new Set();
+    stories.forEach(s => (s.angles||[]).forEach(a => set.add(a)));
+    return Array.from(set);
+  }
+
+  function showStoryList(){
+    document.getElementById('story-list-view').style.display = 'block';
+    document.getElementById('story-detail-view').style.display = 'none';
+    renderStoryList();
+  }
+
+  function renderStoryList(){
+    const filterCard = document.getElementById('story-filter-card');
+    const filterTags = document.getElementById('story-filter-tags');
+    const angles = allAngles();
+    if (angles.length > 0) {
+      filterCard.style.display = 'block';
+      filterTags.innerHTML = '';
+      const allBtn = document.createElement('div');
+      allBtn.className = 'filter-tag' + (activeAngleFilter===null ? ' active' : '');
+      allBtn.textContent = '全部';
+      allBtn.addEventListener('click', () => { activeAngleFilter = null; renderStoryList(); });
+      filterTags.appendChild(allBtn);
+      angles.forEach(a => {
+        const tag = document.createElement('div');
+        tag.className = 'filter-tag' + (activeAngleFilter===a ? ' active' : '');
+        tag.textContent = a;
+        tag.addEventListener('click', () => { activeAngleFilter = a; renderStoryList(); });
+        filterTags.appendChild(tag);
+      });
+    } else {
+      filterCard.style.display = 'none';
+    }
+
+    const container = document.getElementById('story-list');
+    const shown = activeAngleFilter ? stories.filter(s => (s.angles||[]).includes(activeAngleFilter)) : stories;
+    if (shown.length === 0) { container.innerHTML = '<div class="empty">還沒有故事，先在上面新增</div>'; return; }
+    container.innerHTML = '';
+    shown.forEach(st => {
+      const row = document.createElement('div');
+      row.className = 'story-row';
+      row.innerHTML =
+        '<div style="flex:1;">' +
+          '<div class="name">' + escapeHtml(st.title) + '</div>' +
+          '<div class="angle-tags">' + (st.angles||[]).slice(0,3).map(a=>'<span class="angle-tag">' + escapeHtml(a) + '</span>').join('') + '</div>' +
+        '</div>' + levelBadge(st.level) + '<div class="chevron">›</div>';
+      row.addEventListener('click', () => renderStoryDetail(st.id));
+      container.appendChild(row);
+    });
+  }
+
+  function renderStoryDetail(storyId){
+    const st = stories.find(x=>x.id===storyId);
+    if (!st) return;
+    document.getElementById('story-list-view').style.display = 'none';
+    const detail = document.getElementById('story-detail-view');
+    detail.style.display = 'block';
+    const attempts = st.attempts || 0, correct = st.correct || 0;
+    const acc = attempts > 0 ? Math.round(correct/attempts*100) + '%' : '尚未測試';
+    const originalSentences = st.originalSentences || [];
+    detail.innerHTML =
+      '<div class="detail-back"><button id="btn-story-back">‹ 返回 Story Bank 列表</button></div>' +
+      '<div class="card">' +
+        '<div class="story-title-row">' +
+          '<div class="story-title" contenteditable="true" style="font-size:19px;">' + escapeHtml(st.title) + '</div>' +
+          levelBadge(st.level) +
+        '</div>' +
+        '<div class="story-view-toggle">' +
+          '<button class="view-btn active" data-view="summary">摘要分析</button>' +
+          '<button class="view-btn" data-view="original">原文句子（' + originalSentences.length + '）</button>' +
+        '</div>' +
+        '<div class="story-view" data-view-content="summary">' +
+          '<div class="story-field-label">可替換細節</div>' +
+          '<div class="story-field" contenteditable="true" data-field="details">' + escapeHtml(st.details || '') + '</div>' +
+          '<div class="story-field-label">情緒／轉折點</div>' +
+          '<div class="story-field" contenteditable="true" data-field="turningPoint">' + escapeHtml(st.turningPoint || '') + '</div>' +
+          '<div class="story-field-label">適用角度・回想率 ' + acc + '（' + attempts + '次）</div>' +
+          '<div class="angle-tags">' + ((st.angles||[]).map(a=>'<span class="angle-tag">' + escapeHtml(a) + '</span>').join('') || '<span class="muted">尚未標記角度</span>') + '</div>' +
+        '</div>' +
+        '<div class="story-view" data-view-content="original" style="display:none;">' +
+          '<div class="story-field-label">原文（逐句列出，可點擊編輯單句）</div>' +
+          '<ul class="original-list">' +
+            (originalSentences.map((t,idx)=>'<li><span class="bullet">' + (idx+1) + '.</span><span class="txt" contenteditable="true" data-idx="' + idx + '">' + escapeHtml(t) + '</span></li>').join('') || '<li class="muted">（還沒有原文句子，可在下方新增）</li>') +
+          '</ul>' +
+          '<div class="row" style="margin-top:12px;">' +
+            '<input type="text" id="add-original-line" placeholder="新增一句原文...">' +
+            '<button class="btn ghost" id="btn-add-original" style="flex:0 0 auto;">新增</button>' +
+          '</div>' +
+        '</div>' +
+        '<button class="btn danger ghost" id="btn-story-delete" style="width:100%; margin-top:16px;">刪除這個故事</button>' +
+      '</div>';
+    document.getElementById('btn-story-back').addEventListener('click', showStoryList);
+    detail.querySelector('.story-title').addEventListener('blur', async function(){ st.title = this.textContent.trim(); await saveStories(); });
+    detail.querySelectorAll('.story-field').forEach(el => {
+      el.addEventListener('blur', async function(){ st[this.dataset.field] = this.textContent.trim(); await saveStories(); });
+    });
+    detail.querySelectorAll('.view-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        detail.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        detail.querySelectorAll('.story-view').forEach(v => { v.style.display = (v.dataset.viewContent === btn.dataset.view) ? 'block' : 'none'; });
+      });
+    });
+    detail.querySelectorAll('.original-list .txt').forEach(el => {
+      el.addEventListener('blur', async function(){
+        st.originalSentences[parseInt(this.dataset.idx, 10)] = this.textContent.trim();
+        await saveStories();
+      });
+    });
+    const addLineBtn = detail.querySelector('#btn-add-original');
+    if (addLineBtn) addLineBtn.addEventListener('click', async () => {
+      const inp = detail.querySelector('#add-original-line');
+      const val = inp.value.trim();
+      if (!val) return;
+      st.originalSentences = st.originalSentences || [];
+      st.originalSentences.push(val);
+      await saveStories();
+      renderStoryDetail(storyId);
+    });
+    detail.querySelector('#btn-story-delete').addEventListener('click', async () => {
+      if (!confirm('刪除這個故事嗎？')) return;
+      stories = stories.filter(x=>x.id!==st.id);
+      await saveStories();
+      showStoryList();
+    });
+  }
+
+  // ---------- Mock Test ----------
+  document.getElementById('btn-add-mock').addEventListener('click', async () => {
+    const topic = document.getElementById('new-mock-topic').value.trim();
+    if (!topic) { alert('至少要填主題／題目'); return; }
+    mockTests.push({
+      id: uid('mock'), topic, date: new Date().toISOString(),
+      response: document.getElementById('new-mock-response').value.trim(),
+      mistakes: document.getElementById('new-mock-mistakes').value.trim(),
+      adjustment: document.getElementById('new-mock-adjustment').value.trim(),
+      sample: document.getElementById('new-mock-sample').value.trim()
+    });
+    ['new-mock-topic','new-mock-response','new-mock-mistakes','new-mock-adjustment','new-mock-sample'].forEach(id=>document.getElementById(id).value='');
+    await saveMock(); renderMockList();
+  });
+
+  function renderMockList(){
+    const container = document.getElementById('mock-list');
+    if (mockTests.length === 0) { container.innerHTML = '<div class="empty">還沒有測驗紀錄，先在上面新增</div>'; return; }
+    container.innerHTML = '';
+    mockTests.slice().reverse().forEach(m => {
+      const d = new Date(m.date);
+      const dateStr = (d.getMonth()+1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+      const card = document.createElement('div');
+      card.className = 'mock-card';
+      card.innerHTML =
+        '<div class="mock-head">' +
+          '<div class="mock-topic" contenteditable="true">' + escapeHtml(m.topic) + '</div>' +
+          '<div class="mock-date">' + dateStr + '</div>' +
+          '<button class="del-x">✕</button>' +
+        '</div>' +
+        '<div class="mock-field-label">我的 Response</div>' +
+        '<div class="mock-field response" contenteditable="true" data-field="response">' + escapeHtml(m.response || '') + '</div>' +
+        '<div class="mock-field-label">犯錯的地方／原因分析</div>' +
+        '<div class="mock-field mistakes" contenteditable="true" data-field="mistakes">' + escapeHtml(m.mistakes || '') + '</div>' +
+        '<div class="mock-field-label">訂正以及調整</div>' +
+        '<div class="mock-field adjustment" contenteditable="true" data-field="adjustment">' + escapeHtml(m.adjustment || '') + '</div>' +
+        '<div class="mock-field-label">Sample（滿分回答）</div>' +
+        '<div class="mock-field sample" contenteditable="true" data-field="sample">' + escapeHtml(m.sample || '') + '</div>';
+      card.querySelector('.mock-topic').addEventListener('blur', async function(){ m.topic = this.textContent.trim(); await saveMock(); });
+      card.querySelectorAll('.mock-field').forEach(el => {
+        el.addEventListener('blur', async function(){ m[this.dataset.field] = this.textContent.trim(); await saveMock(); });
+      });
+      card.querySelector('.del-x').addEventListener('click', async () => {
+        if (!confirm('刪除這筆測驗紀錄嗎？')) return;
+        mockTests = mockTests.filter(x=>x.id!==m.id);
+        await saveMock(); renderMockList();
+      });
+      container.appendChild(card);
+    });
+  }
+
+  // ---------- Listen and Repeat ----------
+  function defaultTodayLabel(){
+    const d = new Date();
+    return String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+  }
+  document.getElementById('new-lr-label').value = defaultTodayLabel();
+
+  document.getElementById('btn-add-lr-session').addEventListener('click', async () => {
+    const inp = document.getElementById('new-lr-label');
+    const label = inp.value.trim() || defaultTodayLabel();
+    lrSessions.push({ id: uid('lr'), label, date: new Date().toISOString(), sentences: [] });
+    inp.value = defaultTodayLabel();
+    await saveLR(); renderLRSessions();
+  });
+
+  function renderLRSessions(){
+    const container = document.getElementById('lr-session-list');
+    if (lrSessions.length === 0) { container.innerHTML = '<div class="empty">還沒有場次，先在上面新增</div>'; return; }
+    container.innerHTML = '';
+    lrSessions.slice().reverse().forEach(session => {
+      const card = document.createElement('div');
+      card.className = 'lr-session-card';
+      card.innerHTML =
+        '<div class="lr-session-head">' +
+          '<div class="lr-label" contenteditable="true">' + escapeHtml(session.label) + '</div>' +
+          '<button class="del-x">✕</button>' +
+        '</div>' +
+        '<div class="lr-sentences"></div>' +
+        '<div class="row" style="margin-top:6px;">' +
+          '<button class="btn ghost btn-add-lr-sent" style="width:100%;">+ 新增句子</button>' +
+        '</div>';
+      card.querySelector('.lr-label').addEventListener('blur', async function(){
+        session.label = this.textContent.trim() || defaultTodayLabel();
+        await saveLR();
+      });
+      card.querySelector('.del-x').addEventListener('click', async () => {
+        if (!confirm('刪除整個場次「' + session.label + '」嗎？')) return;
+        lrSessions = lrSessions.filter(x=>x.id!==session.id);
+        await saveLR(); renderLRSessions();
+      });
+
+      const sentContainer = card.querySelector('.lr-sentences');
+      session.sentences.forEach((sent, idx) => {
+        const block = document.createElement('div');
+        block.className = 'lr-sentence-block';
+        block.innerHTML =
+          '<div class="lr-sentence-num"><span>Sentence ' + (idx+1) + '</span><button class="del-p del-lr-sent">✕ 刪除</button></div>' +
+          '<div class="lr-field-label">Sentence</div>' +
+          '<div class="lr-field sentence-text" contenteditable="true" data-field="sentence">' + escapeHtml(sent.sentence || '') + '</div>' +
+          '<div class="lr-field-label">Response</div>' +
+          '<div class="lr-field response-text" contenteditable="true" data-field="response">' + escapeHtml(sent.response || '') + '</div>' +
+          '<div class="lr-field-label">Problem</div>' +
+          '<ul class="lr-problem-list"></ul>' +
+          '<div class="lr-add-problem">' +
+            '<input type="text" placeholder="新增一個問題點，例如：Too slow">' +
+            '<button class="btn ghost">加入</button>' +
+          '</div>';
+        block.querySelectorAll('.lr-field').forEach(el => {
+          el.addEventListener('blur', async function(){
+            sent[this.dataset.field] = this.textContent.trim();
+            await saveLR();
+          });
+        });
+        block.querySelector('.del-lr-sent').addEventListener('click', async () => {
+          if (!confirm('刪除這句嗎？')) return;
+          session.sentences = session.sentences.filter(x=>x.id!==sent.id);
+          await saveLR(); renderLRSessions();
+        });
+
+        const probList = block.querySelector('.lr-problem-list');
+        (sent.problems||[]).forEach((p, pIdx) => {
+          const li = document.createElement('li');
+          li.innerHTML = '<span>·</span><span class="txt" contenteditable="true">' + escapeHtml(p) + '</span><button class="del-p">✕</button>';
+          li.querySelector('.txt').addEventListener('blur', async function(){
+            sent.problems[pIdx] = this.textContent.trim();
+            await saveLR();
+          });
+          li.querySelector('.del-p').addEventListener('click', async () => {
+            sent.problems = sent.problems.filter((_,i)=>i!==pIdx);
+            await saveLR(); renderLRSessions();
+          });
+          probList.appendChild(li);
+        });
+
+        const addProbInput = block.querySelector('.lr-add-problem input');
+        block.querySelector('.lr-add-problem button').addEventListener('click', async () => {
+          const val = addProbInput.value.trim();
+          if (!val) return;
+          sent.problems = sent.problems || [];
+          sent.problems.push(val);
+          await saveLR(); renderLRSessions();
+        });
+
+        sentContainer.appendChild(block);
+      });
+
+      card.querySelector('.btn-add-lr-sent').addEventListener('click', async () => {
+        session.sentences.push({ id: uid('lrsent'), sentence: '', response: '', problems: [] });
+        await saveLR(); renderLRSessions();
+      });
+
+      container.appendChild(card);
+    });
+  }
+
+  // ---------- Stats ----------
+  function renderStats(){
+    const byCat = document.getElementById('stats-by-cat');
+    const weak = document.getElementById('weak-sentences');
+    const logSummary = document.getElementById('log-summary');
+    const logHistory = document.getElementById('log-history');
+    const levelDist = document.getElementById('level-dist-sent');
+
+    if (bank.sentences.length === 0) {
+      levelDist.innerHTML = '<div class="empty">句庫是空的</div>';
+    } else {
+      const counts = [0,0,0,0,0];
+      bank.sentences.forEach(s => { counts[(s.level||1)-1]++; });
+      const max = Math.max.apply(null, counts.concat([1]));
+      levelDist.innerHTML = '<div class="level-dist">' +
+        counts.map((c,i)=>'<div class="bar"><div class="col" style="height:' + Math.max(4, c/max*54) + 'px; background:' + levelColor(i+1) + ';"></div><div class="lv-label">Lv' + (i+1) + '・' + c + '</div></div>').join('') +
+      '</div>';
+    }
+
+    if (log.length === 0) {
+      byCat.innerHTML = '<div class="empty">還沒有練習紀錄</div>';
+      weak.innerHTML = '<div class="empty">還沒有練習紀錄</div>';
+      logHistory.innerHTML = '<div class="empty">尚無資料</div>';
+      logSummary.textContent = '尚無資料';
+      return;
+    }
+
+    const catStats = {};
+    log.forEach(entry => {
+      if (!catStats[entry.categoryId]) catStats[entry.categoryId] = { name: entry.categoryName, total: 0, recalled: 0 };
+      catStats[entry.categoryId].total += entry.total;
+      catStats[entry.categoryId].recalled += entry.recalled;
+    });
+    byCat.innerHTML = '';
+    Object.keys(catStats).map(k=>catStats[k]).sort((a,b)=> (a.recalled/a.total) - (b.recalled/b.total)).forEach(c => {
+      const pct = c.total ? Math.round(c.recalled/c.total*100) : 0;
+      const row = document.createElement('div');
+      row.className = 'stat-row';
+      row.innerHTML = '<div class="stat-label">' + escapeHtml(c.name) + '</div><div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;"></div></div><div class="stat-pct">' + pct + '%</div>';
+      byCat.appendChild(row);
+    });
+
+    const withAttempts = bank.sentences.filter(s => (s.attempts||0) > 0);
+    withAttempts.sort((a,b) => (a.correct/a.attempts) - (b.correct/b.attempts));
+    weak.innerHTML = '';
+    if (withAttempts.length === 0) { weak.innerHTML = '<div class="empty">還沒有練習紀錄</div>'; }
+    else {
+      withAttempts.slice(0,10).forEach(s => {
+        const pct = Math.round(s.correct/s.attempts*100);
+        const row = document.createElement('div');
+        row.className = 'sent-row';
+        row.innerHTML = '<div class="body"><div class="txt">' + escapeHtml(s.text) + '</div><div class="meta">' + levelBadge(s.level) + '<span class="acc">' + pct + '%（' + s.attempts + '次）</span></div></div>';
+        weak.appendChild(row);
+      });
+    }
+
+    logHistory.innerHTML = '';
+    log.slice(-12).reverse().forEach(entry => {
+      const d = new Date(entry.date);
+      const dateStr = (d.getMonth()+1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+      const row = document.createElement('div');
+      row.className = 'log-item';
+      row.innerHTML = '<div><div>' + escapeHtml(entry.categoryName) + '</div><div class="d">' + dateStr + '</div></div><div>' + entry.recalled + '/' + entry.total + '</div>';
+      logHistory.appendChild(row);
+    });
+
+    const totalSessions = log.length;
+    const totalRecalled = log.reduce((a,e)=>a+e.recalled,0);
+    const totalItems = log.reduce((a,e)=>a+e.total,0);
+    logSummary.textContent = '共練習 ' + totalSessions + ' 次抽題，累計 ' + totalRecalled + '/' + totalItems + ' 句被成功回想（' + (totalItems? Math.round(totalRecalled/totalItems*100):0) + '%）';
+  }
+
+  function renderAll(){ renderCatSelect(); renderBankList(); renderUnivList(); showStoryList(); renderMockList(); renderLRSessions(); }
+
+  // ---------- Backup export / import ----------
+  function doExport(){
+    const payload = { exportedAt: new Date().toISOString(), version: 1, bank, stories, log, mockTests, lrSessions, universalTemplates };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date();
+    const stamp = d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+    a.href = url;
+    a.download = 'speaking-recall-bench-backup-' + stamp + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+  document.getElementById('btn-export-backup').addEventListener('click', doExport);
+  document.getElementById('btn-export-backup-2').addEventListener('click', doExport);
+
+  function doImportClick(){ document.getElementById('import-file-input').click(); }
+  document.getElementById('btn-import-backup').addEventListener('click', doImportClick);
+  document.getElementById('btn-import-backup-2').addEventListener('click', doImportClick);
+
+  document.getElementById('import-file-input').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!confirm('這會覆蓋目前工具裡的所有資料，確定要用這份備份還原嗎？')) { e.target.value = ''; return; }
+      if (data.bank) bank = data.bank;
+      if (data.stories) stories = data.stories;
+      if (data.log) log = data.log;
+      if (data.mockTests) mockTests = data.mockTests;
+      if (data.lrSessions) lrSessions = data.lrSessions;
+      if (data.universalTemplates) universalTemplates = data.universalTemplates;
+      await saveBank(); await saveStories(); await saveLog(); await saveMock(); await saveLR(); await saveUniv();
+      renderAll();
+      alert('已還原備份。');
+    } catch(err) {
+      alert('這個檔案讀取失敗，請確認是不是本工具匯出的備份檔案。');
+      console.error(err);
+    }
+    e.target.value = '';
+  });
+
+  // ---------- Sync controls ----------
+  document.getElementById('binIdInput').value = getBinId();
+  document.getElementById('apiKeyInput').value = getApiKey();
+
+  document.getElementById('saveSyncKeys').addEventListener('click', () => {
+    setBinCreds(
+      document.getElementById('binIdInput').value.trim(),
+      document.getElementById('apiKeyInput').value.trim()
+    );
+    syncMsg('金鑰已儲存（尚未上傳，請按「上傳到雲端」）');
+  });
+
+  document.getElementById('pushCloud').addEventListener('click', async () => {
+    if(!getBinId() || !getApiKey()){ syncMsg('請先填 Bin ID 與 X-Master-Key'); return; }
+    syncMsg('上傳中…');
+    cloudCache = {};
+    ALL_KEYS.forEach(k => {
+      const v = localStorage.getItem(k);
+      if (v !== null) cloudCache[k] = v;
+    });
+    await cloudSave();
+  });
+
+  document.getElementById('pullCloud').addEventListener('click', async () => {
+    if(!getBinId() || !getApiKey()){ syncMsg('請先填 Bin ID 與 X-Master-Key'); return; }
+    if(!confirm('從雲端下載會覆蓋這台裝置目前的資料，確定嗎？')) return;
+    syncMsg('下載中…');
+    await cloudLoad();
+    if(cloudCache === null) return;
+    ALL_KEYS.forEach(k => {
+      if (cloudCache[k] !== undefined) localStorage.setItem(k, cloudCache[k]);
+    });
+    cloudCache = null;
+    await loadData();
+    syncMsg('已從雲端下載並套用 · ' + new Date().toLocaleTimeString());
+  });
+
+  loadData();
+})();
+</script>
+</body>
+</html>
